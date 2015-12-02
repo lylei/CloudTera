@@ -1,0 +1,164 @@
+// Copyright (c) 2015, Baidu.com. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+import "src/proto/status_code.proto";
+
+package baidu.heimdallr.server;
+option cc_generic_services = true;
+
+////// Service //////
+message AddServiceRequest {
+  optional string service_name = 1;
+}
+
+message AddServiceResponse {
+  optional StatusCode status = 1;
+}
+
+message SetServiceResourceRequest {
+  optional string service_name = 1;
+  optional string resource_name = 2;
+  optional string provider_name = 3;
+  optional uint64 quantity = 4;
+}
+
+message SetServiceResourceResponse {
+  optional StatusCode status = 1;
+}
+
+message ListServiceRequest {
+  optional string service_name = 1;
+}
+
+message ListServiceResponse {
+  //repeated Service services = 1;
+  optional string service_info = 1;
+  optional StatusCode status = 2;
+}
+
+////// Group //////
+message AddGroupRequest {
+  optional string group_name = 1;
+}
+
+message AddGroupResponse {
+  optional StatusCode status = 1;
+}
+
+message SetGroupQuotaRequest {
+  optional string group_name = 1;
+  optional string service_name = 2;
+  optional string resource_name = 3;
+  optional uint64 quota = 4;
+}
+
+message SetGroupQuotaResponse {
+  optional StatusCode status = 1;
+}
+
+message ListGroupRequest {
+  optional string group_name = 1;
+}
+
+message ListGroupResponse {
+  // repeated string services = 1;
+  // repeated string users = 2;
+  optional string group_info = 1;
+  optional StatusCode status = 2;
+}
+
+////// User //////
+message AddUserRequest {
+  optional string user_name = 1;
+  optional string passwd = 2;
+}
+
+message AddUserResponse {
+  optional StatusCode status = 1;
+}
+
+message AddUserToGroupRequest {
+  optional string user_name = 1;
+  optional string group_name = 2;
+}
+
+message AddUserToGroupResponse {
+  optional StatusCode status = 1;
+}
+
+message ListUserRequest {
+  optional string user_name = 1;
+}
+
+message ListUserResponse {
+  optional string user_info = 1;
+  optional StatusCode status = 2;
+}
+
+////// helpers //////
+message History {
+  optional uint64 capacity = 1;
+  optional uint64 ts = 2;
+}
+
+message Resource {
+  optional string resource_name = 1;
+  optional uint64 capacity = 2;
+  repeated UsedBy used_by = 3;
+  optional uint64 left = 4;
+  repeated History history = 5;
+}
+
+message Provider {
+  optional string resource_name = 1;
+  optional string name = 2;
+  optional uint64 quantity = 3;
+}
+
+message UsedBy {
+  optional string group_name = 1;
+  optional uint64 quantity = 2;
+}
+
+message Service {
+  optional string service_name = 1;
+  repeated Resource resources = 2;
+  repeated Provider providers = 3;
+  repeated string groups = 4;
+}
+
+message User {
+  optional string user_name = 1;
+  optional string token = 2;
+  repeated string groups = 3;
+}
+
+message Quota {
+  optional string service_name = 1;
+  optional string resource_name = 2;
+  optional uint64 quota = 3;
+}
+
+message Group {
+  optional string group_name = 1;
+  repeated Quota quota = 2;
+  repeated string users = 3;
+}
+
+service Server {
+  ////// Service //////
+  rpc AddService(AddServiceRequest) returns(AddServiceResponse);
+  rpc SetServiceResource(SetServiceResourceRequest) returns(SetServiceResourceResponse);
+  rpc ListService(ListServiceRequest) returns(ListServiceResponse);
+
+  ////// Group //////
+  rpc AddGroup(AddGroupRequest) returns(AddGroupResponse);
+  rpc SetGroupQuota(SetGroupQuotaRequest) returns(SetGroupQuotaResponse);
+  rpc ListGroup(ListGroupRequest) returns(ListGroupResponse);
+
+  ////// User //////
+  rpc AddUser(AddUserRequest) returns(AddUserResponse);
+  rpc AddUserToGroup(AddUserToGroupRequest) returns(AddUserToGroupResponse);
+  rpc ListUser(ListUserRequest) returns(ListUserResponse);
+}

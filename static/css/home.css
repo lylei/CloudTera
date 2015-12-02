@@ -20,9 +20,8 @@ body {
   z-index: 20;
 }
 
-.jumbotron  > .container {
-  text-align: center;
-  border-bottom: 1px solid #e5e5e5;
+.top-offset {
+  padding: 40px;
 }
 
 /* Flip around the padding for proper display in narrow viewports */

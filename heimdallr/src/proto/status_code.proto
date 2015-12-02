@@ -1,0 +1,24 @@
+// Copyright (c) 2015, squirreldb. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+package baidu.heimdallr;
+
+enum StatusCode {
+  kOK = 1;
+
+  kDBInitError = 100;
+  kDBWriteError = 101;
+  kDBReadError = 102;
+
+  kServiceExists = 200;
+  kServiceNotFound = 201;
+
+  kResourceNotFound = 300;
+  kResourceRunOut = 301;
+
+  kGroupExists = 400;
+
+  kUserExists = 500;
+  kUserNotFound = 501;
+}
