@@ -21,11 +21,34 @@ from django.contrib import admin
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
     url(r'^$', 'tera.views.index', name='home'),
+
+    # Docs
     url(r'^arch/$', 'tera.views.arch', name='arch'),
+    url(r'^bench/$', 'tera.views.bench', name='bench'),
+    url(r'^api/$', 'tera.views.api', name='api'),
+    url(r'^faq/$', 'tera.views.faq', name='faq'),
+
+    # Dashboard
     url(r'^dash/$', 'tera.views.dash', name='dash'),
     url(r'^signin/$', 'tera.views.signin', name='signin'),
-    url(r'^contact/$', 'tera.views.contact', name='contact'),
+    url(r'^container/$', 'tera.views.container', name='container'),
+    url(r'^tera/$', 'tera.views.tera', name='tera'),
+    url(r'^nexus/$', 'tera.views.nexus', name='nexus'),
+    url(r'^overview/$', 'tera.views.overview', name='overview'),
+
+    # Community
+    url(r'^git/$', 'tera.views.git', name='git'),
+    url(r'^open/$', 'tera.views.open', name='ope'),
+
+    # About
     url(r'^team/$', 'tera.views.team', name='team'),
+    url(r'^join/$', 'tera.views.join', name='join'),
+
+    # Contact
+    url(r'^contact/$', 'tera.views.contact', name='contact'),
+
+    url(r'^test/$', 'tera.views.test', name='test'),
+    url(r'^simple/$', 'tera.views.simple', name='simple'),
 
     url( r'^static/(?P<path>.*)$', 'django.views.statc.serve',{ 'document_root': settings.STATIC_ROOT }),
 ]

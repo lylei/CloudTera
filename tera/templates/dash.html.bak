@@ -33,16 +33,15 @@
 
   <body>
 
-    <div id="head" class="navbar-wrapper"></div>
+    {% include 'dash_head.html' %}
 
     <div class="container-fluid">
       <div class="row">
         <div class="col-sm-3 col-md-2 sidebar">
           <ul class="nav nav-sidebar">
-            <li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
-            <li><a href="#">Linkbase</a></li>
-            <li><a href="#">Garbage</a></li>
-            <li><a href="#">App Search</a></li>
+            <li class="active"><a href="#">Galaxy <span class="sr-only">(current)</span></a></li>
+            <li><a href="#">Sunflower</a></li>
+            <li><a href="#">Spider</a></li>
           </ul>
         </div>
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
@@ -168,6 +167,5 @@
     <script src="/static/bootstrap/docs/assets/js/vendor/holder.min.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <script src="/static/bootstrap/docs/assets/js/ie10-viewport-bug-workaround.js"></script>
-    <script src="/static/js/index.js"></script>
   </body>
 </html>

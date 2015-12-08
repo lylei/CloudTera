@@ -1,112 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Tera">
-    <meta name="author" content="lylei049@gmail.com">
-    <title>Tera ·Bill</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
 
-    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <title>Contact·Tera</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/static/bootstrap/docs/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <link href="/static/bootstrap/docs/assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="/static/bootstrap/docs/assets/js/ie-emulation-modes-warning.js"></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
 
-    <script src="/static/echarts/doc/asset/js/esl/esl.js"></script>
-</head>
+    <!-- Custom styles for this template -->
+    <link href="/static/css/home.css" rel="stylesheet">
+  </head>
+<!-- NAVBAR
+================================================== -->
+  <body>
+  <!--
+    <div id="head" class="navbar-wrapper"></div>-->
+    {% include 'nav.html' %}
 
-<body>
-    <!-- Fixed navbar -->
-    <div class="container featurette">
-        <div class="row">
-            <div id="graphic" class="col-md-12">
-                <div id="main" style="height:400px;width:100%"></div>
-            </div><!--/span-->
-        </div><!--/row-->
-    </div><!--/.fluid-container-->
+    <div class="container top-offset main">
+      <h1 class="page-header">{{email}}</h1>
+      <h3>simple</h3>
+    </div>
 
-    <!-- Le javascript
+    </div> <!-- /container -->
+
+    <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script type="text/javascript">
-        var names = {{names|safe}}
-	var data = {{data|safe}}
-        require.config({
-            packages: [
-                {
-                    name: 'echarts',
-                    location: '/static/echarts/src',
-                    main: 'echarts'
-                },
-                {
-                    name: 'zrender',
-                    location: 'http://ecomfe.github.io/zrender/src',
-                    //location: '../../../zrender/src',
-                    main: 'zrender'
-                }
-            ]
-        });
-
-        var option = {
-            tooltip : {
-                trigger: 'axis'
-            },
-            legend: {
-                data:[names['mem'],'cpu']
-            },
-            toolbox: {
-                show : true,
-                feature : {
-                    mark : {show: true},
-                    dataView : {show: true, readOnly: false},
-                    magicType : {show: true, type: ['line', 'bar']},
-                    restore : {show: true},
-                    saveAsImage : {show: true}
-                }
-            },
-            calculable : true,
-            xAxis : [
-                {
-                    type : 'category',
-                    //data : ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
-		    data:data['ts']
-                }
-            ],
-            yAxis : [
-                {
-                    type : 'value',
-                    splitArea : {show : true}
-                }
-            ],
-            series : [
-                {
-                    name: names['mem'],
-                    type:'line',
-                    // data:[2.0, 4.9, 7.0, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20.0, 6.4, 3.3]
-		    data:data['mem_data']
-                },
-                {
-                    name: 'cpu',
-                    type:'line',
-                    //data:[2.6, 5.9, 9.0, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6.0, 2.3]
-		    data:data['cpu_data']
-                }
-            ]
-        };
-
-        require(
-            [
-                'echarts',
-                'echarts/chart/line',
-                'echarts/chart/bar'
-            ],
-            function (ec) {
-                var myChart = ec.init(document.getElementById('main'));
-                myChart.setOption(option);
-            }
-        )
-    </script>
-</body>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="/static/bootstrap/docs/dist/js/bootstrap.min.js"></script>
+    <!-- Just to make our placeholder images work. Don't actually copy the next line! -->
+    <script src="/static/bootstrap/docs/assets/js/vendor/holder.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="/static/bootstrap/docs/assets/js/ie10-viewport-bug-workaround.js"></script>
+    <!--
+    <script src="/static/js/index.js"></script>-->
+  </body>
 </html>

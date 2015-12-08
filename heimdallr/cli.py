@@ -6,6 +6,7 @@
 
 import argparse
 import subprocess
+import json
 
 
 CLI = './cli'
@@ -28,7 +29,7 @@ def parse_args():
 
   list_serv_parser = subparser.add_parser('list_serv')
   list_serv_parser.add_argument('--name', type=str)
-  list_serv_parser.set_defaults(func=list_serv)
+  list_serv_parser.set_defaults(func=list_serv_warp)
 
   add_group_parser = subparser.add_parser('add_group')
   add_group_parser.add_argument('--name', type=str)
@@ -43,7 +44,16 @@ def parse_args():
 
   list_group_parser = subparser.add_parser('list_group')
   list_group_parser.add_argument('--name', type=str)
-  list_group_parser.set_defaults(func=list_group)
+  list_group_parser.set_defaults(func=list_group_warp)
+
+  add_app_parser = subparser.add_parser('add_app')
+  add_app_parser.add_argument('--group_name', type=str)
+  add_app_parser.add_argument('--app_name', type=str)
+  add_app_parser.add_argument('--cpu', type=int, default=0)
+  add_app_parser.add_argument('--mem',  type=int, default=0)
+  add_app_parser.add_argument('--disk', type=int, default=0)
+  add_app_parser.add_argument('--flash', type=int, default=0)
+  add_app_parser.set_defaults(func=add_app_wrap)
 
   add_user_parser = subparser.add_parser('add_user')
   add_user_parser.add_argument('--name', type=str)
@@ -57,7 +67,7 @@ def parse_args():
 
   list_user_parser = subparser.add_parser('list_user')
   list_user_parser.add_argument('--name', type=str)
-  list_user_parser.set_defaults(func=list_user)
+  list_user_parser.set_defaults(func=list_user_wrap)
 
   args = parser.parse_args()
   args.func(args)
@@ -67,126 +77,66 @@ def add_serv(args):
   cmd = ' '.join([CLI, 'add_serv', args.name])
   ret = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          shell=True)
-  list_serv(args)
+  list_serv_warp(args)
 
 
 def set_serv(args):
   cmd = ' '.join([CLI, 'set_serv', args.name, args.res, args.prov, args.quan])
   ret = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          shell=True)
-  list_serv(args)
+  list_serv_warp(args)
 
 
-def list_serv(args):
-  resources = 'resources'
-  providers = 'providers'
-  groups = 'group_name'
-  history = 'history'
-  cmd = ' '.join([CLI, 'list_serv', args.name])
+def list_serv_warp(args):
+  list_serv(args.name)
+
+
+def list_serv(name):
+  cmd = '''curl -d '{"service_name":"''' + name + '''"}' 0.0.0.0:8223/baidu.heimdallr.server.Server.ListService'''
   ret = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          shell=True)
-  res_str = ''.join(ret.stdout.readlines())
-  name_ends = res_str.find(args.name) + len(args.name) + 1
-  print 'Service', args.name
-  print '------------------------------'
-
-  res_str = res_str[name_ends:]
-  res_str = res_str.replace(resources, resources+'\n')
-  res_str = res_str.replace(providers, providers+'\n')
-  res_str = res_str.replace(history, '\n  '+history+'\n  ')
-  res_str = res_str.replace(groups, '\n  used')
-  res_str = res_str.replace('left', ' left')
-  res_str = res_str.replace('used_by', '')
-  res_str = res_str.replace('}', '\n')
-  res_str = res_str.replace('{', '')
-
-  comp = res_str.split('\n')
-  new_res_str = []
-  l = []
-  r = []
-  for line in comp:
-    if 'resource_name' in line and 'capacity' in line:
-      l.append(r)
-      r = []
-      tmp = line.split(' ')
-      tmp = filter(None, tmp)
-      r.append(tmp[1][1:-1])
-      new_res_str.append(line)
-    elif 'capacity' in line:
-      tmp = line.split(' ')
-      tmp = filter(None, tmp)
-      r.append(tmp[1])
-    elif 'history' in line or 'providers' in line:
-      pass
-    else:
-      new_res_str.append(line)
-  l = filter(None, l)
-  for resource in l:
-    print resource[0]
-    for i in range(1, len(resource)):
-      if resource[0] == 'cpu':
-        n = int(resource[i])
-        print '%6d' % n, '.' * (n / 100)
-      if resource[0] == 'host':
-        n = int(resource[i])
-        print '%6d' % n, '.' * (n / 10)
-  print ''
-  print '\n'.join(new_res_str)
+  ret = ''.join(ret.stdout.readlines())
+  d = json.loads(ret)
+  print d['services']
+  return d['services']
 
 
 def add_group(args):
   cmd = ' '.join([CLI, 'add_group', args.name])
   ret = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          shell=True)
-  list_group(args)
+  list_group_warp(args)
 
 
 def set_group(args):
   cmd = ' '.join([CLI, 'set_group', args.name, args.serv, args.res, args.quota])
   ret = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          shell=True)
-  list_group(args)
+  list_group_warp(args)
 
 
-def list_group(args):
-  cmd = ' '.join([CLI, 'list_group', args.name])
+def list_group_warp(args):
+  list_group(args.name)
+
+def list_group(name):
+  cmd = '''curl -d '{"group_name":"''' + name + '''"}' 0.0.0.0:8223/baidu.heimdallr.server.Server.ListGroup'''
   ret = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          shell=True)
+  ret = ''.join(ret.stdout.readlines())
+  d = json.loads(ret)
+  print d['group']
+  return d['group']
 
-  res_str = ''.join(ret.stdout.readlines())
-  name_ends = res_str.find(args.name) + len(args.name) + 1
-  res_str = res_str.replace('}', '\n')
-  res_str = res_str.replace('{', '')
-  print 'Group', args.name
-  print '------------------------------'
 
-  res_str = res_str[name_ends:]
-  print res_str
+def add_app_wrap(args):
+  add_app(args.group_name, args.app_name, args.cpu, args.mem, args.disk, args.flash)
 
-  if args.name == 'tera':
-    try:
-      fp = open('tera.tail', 'r')
-      fp.seek(-150, 2)
-      lines = ''
-      for i in range(10):
-        lines += fp.readline()
-      comp = lines.split('\n')
-      comp = comp[1:-1]
-      for line in comp:
-        l = line.split(' ')
-        mem = l[1]
-        cpu = l[2]
-        mem = int(float(mem))
-        cpu = int(float(cpu))
-        print 'mem:%6dM' % (mem /1024/1024),
-        mem_str = '.' * (mem / 1024 / 1024 / 5)
-        print mem_str
-        print 'cpu:%6d%%' % cpu,
-        cpu_str = '.' * (cpu)
-        print cpu_str
-    except:
-      pass
 
+def add_app(group, app, cpu, mem, disk, flash):
+  cmd = ' '.join([CLI, 'add_app', str(group), str(app), str(cpu), str(mem), str(disk), str(flash)])
+  ret = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         shell=True)
+  list_group(group)
 
 
 def add_user(args):
@@ -200,14 +150,21 @@ def set_user(args):
   cmd = ' '.join([CLI, 'set_user', args.name, args.group])
   ret = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          shell=True)
-  list_user(args)
+  list_user(args.name)
 
 
-def list_user(args):
-  cmd = ' '.join([CLI, 'list_user', args.name])
+def list_user_wrap(args):
+  list_user(args.name)
+
+
+def list_user(name):
+  cmd = '''curl -d '{"user_name":"''' + name + '''"}' 0.0.0.0:8223/baidu.heimdallr.server.Server.ListUser'''
   ret = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          shell=True)
-  print ''.join(ret.stdout.readlines())
+  ret = ''.join(ret.stdout.readlines())
+  d = json.loads(ret)
+  print d['user']['groups']
+  return d['user']['groups']
 
 
 def main():

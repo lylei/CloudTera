@@ -24,6 +24,7 @@ typedef server::UsedBy UsedBy;
 typedef server::Quota Quota;
 typedef server::User User;
 typedef server::History History;
+typedef server::App App;
 
 class DB {
 public:
@@ -35,7 +36,8 @@ public:
                                 const std::string& resource_name,
                                 const std::string& provider_name,
                                 uint64_t quantity);
-  StatusCode ListService(const std::string& service_name, std::string* services);
+  StatusCode ListService(const std::string& service_name, Service* services,
+                         std::string* service_info);
 
   ////// Group //////
   StatusCode AddGroup(const std::string& group_name);
@@ -43,18 +45,22 @@ public:
                            const std::string& service_name,
                            const std::string& resource_name,
                            uint64_t quota);
-  StatusCode ListGroup(const std::string& group_name, std::string* group_info);
+  StatusCode ListGroup(const std::string& group_name, Group* group, std::string* group_info);
+  StatusCode AddApp(const std::string& group_name, const std::string& app_name,
+                    uint64_t cpu, uint64_t mem, uint64_t disk, uint64_t flash);
 
   ////// User //////
   StatusCode AddUser(const std::string& user_name, const std::string& passwd);
   StatusCode AddUserToGroup(const std::string& user_name,
                             const std::string& group_name);
-  StatusCode ListUser(const std::string& user_name, std::string* user_info);
+  StatusCode ListUser(const std::string& user_name, User* user, std::string* user_info);
 
 private:
   StatusCode GetService(const std::string& service_name, Service* service);
   StatusCode GetGroup(const std::string& group_name, Group* group);
   StatusCode GetUser(const std::string& user_name, User* user);
+
+  StatusCode ParseResource(const Resource&, std::string* res);
 
 private:
   leveldb::DB* group_db_;

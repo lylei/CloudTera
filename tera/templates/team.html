@@ -31,12 +31,14 @@
   </head>
 
   <body>
-    <div id="head" class="navbar-wrapper"></div>
+  <!--
+    <div id="head" class="navbar-wrapper"></div>-->
+    {% include 'nav.html' %}
 
     <div class="container">
       <div class="row">
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1 top-offset main">
-          <h1 class="page-header">Tera Cloud</h1>
+          <h1 class="page-header">Tera Team</h1>
           <div class="row placeholders">
             <div class="col-xs-6 col-sm-3 placeholder">
               <img class="img-circle" src="/static/img/shiguang.jpg" width="150" height="150" class="img-responsive" alt="Generic placeholder thumbnail">
@@ -66,18 +68,10 @@
         </div>
       </div>
     </div>
-
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
-    <script src="/static/bootstrap/docs/dist/js/bootstrap.min.js"></script>
-    <!-- Just to make our placeholder images work. Don't actually copy the next line! -->
-    <script src="/static/bootstrap/docs/assets/js/vendor/holder.min.js"></script>
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="/static/bootstrap/docs/assets/js/ie10-viewport-bug-workaround.js"></script>
-    <script src="/static/js/index.js"></script>
+    {% include 'js.html' %}
   </body>
 
 </html>

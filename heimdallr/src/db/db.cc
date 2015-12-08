@@ -148,18 +148,20 @@ StatusCode DB::SetServiceResource(const std::string& service_name,
   return kOK;
 }
 
-StatusCode DB::ListService(const std::string& service_name, std::string* services) {
+StatusCode DB::ListService(const std::string& service_name, Service* services,
+                           std::string* service_info) {
   std::cout << "in db ListService\n";
   std::string service_str;
   leveldb::Status status = service_db_->Get(roption_, service_name, &service_str);
-  *services = service_str;
+  //*services = service_str;
   if (status.IsNotFound()) {
     return kServiceNotFound;
   }
   Service s;
   s.ParseFromString(service_str);
-  *services = s.ShortDebugString();
-  std::cout << *services << std::endl;
+  *services = s;
+  *service_info = s.ShortDebugString();
+  //std::cout << *services << std::endl;
   return kOK;
 }
 
@@ -234,6 +236,27 @@ StatusCode DB::SetGroupQuota(const std::string& group_name,
     return kResourceNotFound;
   }
 
+  // update server_group info
+  found = false;
+  uint32_t serv_group_num = service.groups_size();
+  for (int i = 0; i < serv_group_num; ++i) {
+    if (group_name == service.groups(i)) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    service.add_groups(group_name);
+    std::string result_str;
+    service.SerializeToString(&result_str);
+    std::cout << "resutl str: " << service.ShortDebugString() << std::endl;
+    leveldb::Status s = service_db_->Put(woption_, service_name, result_str);
+    if (!s.ok()) {
+      std::cout << s.ToString() << std::endl;
+      return kDBWriteError;
+    }
+  }
+
   // update group info
   Quota* group_quota = group.add_quota();
   group_quota->set_service_name(service_name);
@@ -252,7 +275,7 @@ StatusCode DB::SetGroupQuota(const std::string& group_name,
   return kOK;
 }
 
-StatusCode DB::ListGroup(const std::string& group_name, std::string* group_info) {
+StatusCode DB::ListGroup(const std::string& group_name, Group* group, std::string* group_info) {
   std::cout << "in db ListGroup\n";
   std::string group_str;
   leveldb::Status status = group_db_->Get(roption_, group_name, &group_str);
@@ -261,8 +284,35 @@ StatusCode DB::ListGroup(const std::string& group_name, std::string* group_info)
   }
   Group g;
   g.ParseFromString(group_str);
+  *group = g;
   *group_info = g.ShortDebugString();
   std::cout << *group_info << std::endl;
+  return kOK;
+}
+
+StatusCode DB::AddApp(const std::string& group_name, const std::string& app_name,
+                    uint64_t cpu, uint64_t mem, uint64_t disk, uint64_t flash) {
+  Group group;
+  StatusCode s = GetGroup(group_name, &group);
+  if (s != kOK) {
+    return s;
+  }
+  App* app = group.add_apps();
+  app->set_name(app_name);
+  app->set_cpu(cpu);
+  app->set_mem(mem);
+  app->set_disk(disk);
+  app->set_flash(flash);
+  
+  std::string result_str;
+  group.SerializeToString(&result_str);
+  std::cout << "resutl str: " << group.ShortDebugString() << std::endl;
+  leveldb::Status status = group_db_->Put(woption_, group_name, result_str);
+  if (!status.ok()) {
+    std::cout << status.ToString() << std::endl;
+    return kDBWriteError;
+  }
+
   return kOK;
 }
 
@@ -324,7 +374,7 @@ StatusCode DB::AddUserToGroup(const std::string& user_name,
   return kOK;
 }
 
-StatusCode DB::ListUser(const std::string& user_name, std::string* user_info) {
+StatusCode DB::ListUser(const std::string& user_name, User* user, std::string* user_info) {
   std::cout << "in db ListUser:" << user_name << std::endl;
   std::string user_str;
   leveldb::Status status = user_db_->Get(roption_, user_name, &user_str);
@@ -333,6 +383,7 @@ StatusCode DB::ListUser(const std::string& user_name, std::string* user_info) {
   }
   User u;
   u.ParseFromString(user_str);
+  *user = u;
   *user_info += "user_name: " + u.user_name() + "\n";
   uint32_t group_num = u.groups_size();
   for (uint32_t i = 0; i < group_num; ++i) {

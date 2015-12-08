@@ -49,6 +49,10 @@ private:
                          const ListGroupRequest* request,
                          ListGroupResponse* response,
                          google::protobuf::Closure* done);
+  virtual void AddApp(google::protobuf::RpcController* controller,
+                         const AddAppRequest* request,
+                         AddAppResponse* response,
+                         google::protobuf::Closure* done);
 
   ////// User //////
   virtual void AddUser(google::protobuf::RpcController* controller,

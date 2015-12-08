@@ -146,6 +146,31 @@ int32_t ListGroupOp(int argc, char* argv[]) {
   return 0;
 }
 
+int32_t AddAppOp(int argc, char* argv[]) {
+  if (argc < 8) {
+    std::cerr << "missing arguments" << std::endl;
+    return 1;
+  }
+  std::string group_name = argv[2];
+  std::string app_name = argv[3];
+  uint64_t cpu = boost::lexical_cast<uint64_t>(argv[4]);
+  uint64_t mem = boost::lexical_cast<uint64_t>(argv[5]);
+  uint64_t disk = boost::lexical_cast<uint64_t>(argv[6]);
+  uint64_t flash = boost::lexical_cast<uint64_t>(argv[7]);
+
+  sdk::Heimdallr* client = new sdk::HeimdallrImpl;
+  StatusCode status;
+
+  client->AddApp(group_name, app_name, cpu, mem, disk, flash, &status, NULL);
+  if (status == kOK) {
+    std::cout << "add app " << app_name << " ok" << std::endl;
+  } else {
+    std::cerr << StatusCode_Name(status) << std::endl;
+  }
+  delete client;
+  return 0;
+}
+
 int32_t AddUserOp(int argc, char* argv[]) {
   if (argc < 4) {
     std::cerr << "missing arguments" << std::endl;
@@ -228,6 +253,8 @@ int main(int argc, char* argv[]) {
     return baidu::heimdallr::SetGroupOp(argc, argv);
   } else if (op == "list_group") {
     return baidu::heimdallr::ListGroupOp(argc, argv);
+  } else if (op == "add_app") {
+    return baidu::heimdallr::AddAppOp(argc, argv);
   } else if (op == "add_user") {
     return baidu::heimdallr::AddUserOp(argc, argv);
   } else if (op == "set_user") {

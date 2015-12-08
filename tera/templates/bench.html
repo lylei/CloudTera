@@ -34,19 +34,34 @@
 <!-- NAVBAR
 ================================================== -->
   <body>
-    <div id="head" class="navbar-wrapper"></div>
+  <!--
+    <div id="head" class="navbar-wrapper"></div>-->
+    {% include 'nav.html' %}
 
     <div class="container top-offset main">
-      <h1 class="page-header">Benchmark's here!!</h1>
-    </div>
+      <h1 class="page-header">Benchmarks</h1>
 
-    <div class="container featuretten col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1">
+      <div class="container featuretten col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1">
         <div class="row">
             <div id="graphic" class="col-md-12">
-                <div id="main" style="height:400px;width:100%"></div>
+                <div id="main-1" style="height:400px;width:100%"></div>
             </div><!--/span-->
         </div><!--/row-->
-    </div><!--/.fluid-container-->
+      </div><!--/.fluid-container-->
+
+      <div class="container featuretten col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1">
+        <h1 class="page-header"></h1>
+      </div>
+
+      <div class="container featuretten col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1">
+        <div class="row">
+          <div id="graphic" class="col-md-12">
+            <div id="main-2" style="height:400px;width:100%"></div>
+          </div><!--/span-->
+        </div><!--/row-->
+      </div><!--/.fluid-container-->
+    </div>
+
 
     <!-- Le javascript
     ================================================== -->
@@ -68,49 +83,88 @@
             ]
         });
 
-        var option = {
-            tooltip : {
-                trigger: 'axis'
-            },
-            legend: {
-                data:['mem','cpu']
-            },
-            toolbox: {
-                show : true,
-                feature : {
-                    mark : {show: true},
-                    dataView : {show: true, readOnly: false},
-                    magicType : {show: true, type: ['line', 'bar']},
-                    restore : {show: true},
-                    saveAsImage : {show: true}
-                }
-            },
-            calculable : true,
-            xAxis : [
-                {
-                    type : 'category',
-                    data : ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
-                }
-            ],
-            yAxis : [
-                {
-                    type : 'value',
-                    splitArea : {show : true}
-                }
-            ],
-            series : [
-                {
-                    name: 'mem',
-                    type:'line',
-                    data:[2.0, 4.9, 7.0, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20.0, 6.4, 3.3]
+        var write = {{write|safe}}
+        var read = {{read|safe}}
+
+
+        var data_set = [write, read];
+        var s = [];
+        for (var i = 0; i < data_set.length; ++i) {
+            var names = data_set[i].names;
+            var ts = data_set[i].ts;
+            var data = data_set[i].data;
+
+            var tmp = new Array();
+            for (var j = 0; j < names.length; ++j) {
+                var chart = new Object();
+                chart.name = names[j];
+                chart.type = 'line';
+                chart.data = data[j];
+                chart.yAxisIndex = j;
+                tmp.push(chart)
+            }
+            s.push(tmp)
+        }
+
+        var tool = {
+            show : true,
+            feature : {
+                mark : {show: true},
+                dataView : {show: true, readOnly: false},
+                magicType : {show: true, type: ['line', 'bar']},
+                restore : {show: true},
+                saveAsImage : {show: true}
+            }
+        }
+
+        var names = [write.names, read.names];
+        var options = new Array();
+
+        var titles = ['Random Write', 'Random Read']
+        var yAxises = [['M/s', 'times'], ['QPS', 'times']]
+        for (var i = 0; i < names.length; ++i) {
+            var option = {
+                title : {
+                    text: titles[i],
+                    subtext: 'Powed by Tera-eva',
+                    x: 'center'
                 },
-                {
-                    name: 'cpu',
-                    type:'line',
-                    data:[2.6, 5.9, 9.0, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6.0, 2.3]
-                }
-            ]
-        };
+                tooltip : {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: names[i],
+                    x : 'right',
+                    y : 'bottom'
+                },
+                toolbox: tool,
+                calculable : true,
+                xAxis : [
+                    {
+                        type : 'category',
+                        data : ts
+                    }
+                ],
+                yAxis : [
+                    {
+                        name : yAxises[i][0],
+                        type : 'value',
+                        //scale : true,
+                        splitNumber: 6,
+                        splitArea : {show : true}
+                    },
+                    {
+                        name : yAxises[i][1],
+                        type : 'value',
+                        //scale : true,
+                        splitNumber: 6,
+                        splitArea : {show : true}
+                    }
+                ],
+                series : s[i]
+            };
+            options.push(option)
+        }
 
         require(
             [
@@ -119,8 +173,16 @@
                 'echarts/chart/bar'
             ],
             function (ec) {
-                var myChart = ec.init(document.getElementById('main'));
-                myChart.setOption(option);
+                var elements = ['main-1', 'main-2'];
+                //var options = [option, option_read]
+                for (var i = 0; i < elements.length; ++i) {
+                    var myChart = ec.init(document.getElementById(elements[i]));
+                    myChart.showLoading({
+                        test: "Loading..."
+                    });
+                    myChart.hideLoading();
+                    myChart.setOption(options[i]);
+                }
             }
         )
     </script>
@@ -128,13 +190,6 @@
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
-    <script src="/static/bootstrap/docs/dist/js/bootstrap.min.js"></script>
-    <!-- Just to make our placeholder images work. Don't actually copy the next line! -->
-    <script src="/static/bootstrap/docs/assets/js/vendor/holder.min.js"></script>
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="/static/bootstrap/docs/assets/js/ie10-viewport-bug-workaround.js"></script>
-    <script src="/static/js/index.js"></script>
+    {% include 'js.html' %}
   </body>
 </html>

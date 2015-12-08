@@ -175,6 +175,32 @@ void HeimdallrImpl::ListGroup(const std::string& group_name,
   }
 }
 
+void HeimdallrImpl::AddApp(const std::string& group_name, const std::string& app_name, uint64_t cpu, uint64_t mem,
+                      uint64_t disk, uint64_t flash, StatusCode* status, UserAddAppCallback* callback) {
+  AddAppRequest* request = new AddAppRequest();
+  request->set_group_name(group_name);
+  request->set_app_name(app_name);
+  request->set_cpu(cpu);
+  request->set_mem(mem);
+  request->set_disk(disk);
+  request->set_flash(flash);
+
+  AddAppResponse* response = new AddAppResponse();
+  sofa::pbrpc::RpcController* cntl = new sofa::pbrpc::RpcController();
+  cntl->SetTimeout(3000);
+
+  Mutex mutex;
+  CondVar cond(&mutex);
+  google::protobuf::Closure* done =
+    sofa::pbrpc::NewClosure(this, &HeimdallrImpl::AddAppCallback, cntl,
+                            request, response, status, callback, &cond);
+
+  stub_->AddApp(cntl, request, response, done);
+  if (!callback) {
+    cond.Wait();
+  }
+}
+
 
 void HeimdallrImpl::AddUser(const std::string& user_name,
                             const std::string& passwd,
@@ -388,6 +414,28 @@ void HeimdallrImpl::ListGroupCallback(sofa::pbrpc::RpcController* cntl,
 
   if (callback) {
     (*callback)(request->group_name(), group_info, status);
+    delete callback;
+  } else {
+    cond->Signal();
+  }
+
+  delete cntl;
+  delete request;
+  delete response;
+}
+
+void HeimdallrImpl::AddAppCallback(sofa::pbrpc::RpcController* cntl,
+                                 AddAppRequest* request,
+                                 AddAppResponse* response,
+                                 StatusCode* status,
+                                 UserAddAppCallback* callback, CondVar* cond) {
+  if (cntl->Failed()) {
+    SLOG(ERROR, "rpc failed: %s", cntl->ErrorText().c_str());
+  }
+  *status = response->status();
+
+  if (callback) {
+    (*callback)(request->group_name(), request->app_name(), status);
     delete callback;
   } else {
     cond->Signal();

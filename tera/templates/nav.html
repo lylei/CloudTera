@@ -1,0 +1,64 @@
+
+<div class="navbar-wrapper">
+  <div class="container">
+    <nav  class="navbar navbar-inverse navbar-static-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/">CloudTera</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Docs <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="/arch">Architecture</a></li>
+                <li><a href="/api">API</a></li>
+                <li><a href="/faq">FAQ</a></li>
+              </ul>
+            </li>
+            <li><a href="/bench/">Benchmark</a></li>
+            <li><a href="/signin">Dashboard</a></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Community <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="/git">Github</a></li>
+                <li><a href="/open">Open source</a></li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">About <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="/team">Team</a></li>
+                <li><a href="/join">Join us!</a></li>
+              </ul>
+            </li>
+            <li><a href="/contact">Contact</a></li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <script type="text/javascript">
+            var user = {{user|safe}};
+            var user_name = user[0];
+            if (user_name == '') {
+              document.write("<li id='sign'><a href=\"/signin\">Sign in</a></li>")
+            } else {
+              document.write('<li class="dropdown">')
+              document.write('<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">' + user_name + ' <span class="caret"></span></a>')
+              document.write('<ul class="dropdown-menu">')
+              document.write("<li id='sign'><a href=\"/dash\">Profile </a></li>")
+              document.write("<li id='sign'><a href=\"/?act=logout\">Sign out</a></li>")
+              document.write('</ul>')
+              document.write('</li>')
+            }
+            </script>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
+</div>

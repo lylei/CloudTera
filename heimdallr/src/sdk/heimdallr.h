@@ -33,6 +33,8 @@ typedef boost::function<void (const std::string&, const std::string&,
         UserSetGroupQuotaCallback;
 typedef boost::function<void (const std::string&, std::string*, StatusCode*)>
         UserListGroupCallback;
+typedef boost::function<void (const std::string&, const std::string&, StatusCode*)>
+        UserAddAppCallback;
 
 ////// User //////
 typedef boost::function<void (const std::string&, const std::string&, StatusCode*)>
@@ -76,6 +78,8 @@ public:
                              UserSetGroupQuotaCallback* callback) = 0;
   virtual void ListGroup(const std::string& group_name, std::string* group_info,
                          StatusCode* status, UserListGroupCallback* callback) = 0;
+  virtual void AddApp(const std::string& group_name, const std::string& app_name, uint64_t cpu, uint64_t mem,
+                      uint64_t disk, uint64_t flash, StatusCode* status, UserAddAppCallback* callback) = 0;
 
   ////// User //////
   virtual void AddUser(const std::string& user_name, const std::string& passwd,

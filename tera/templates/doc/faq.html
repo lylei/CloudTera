@@ -1,0 +1,13 @@
+<ol>
+<li>LG，CF，都是什么概念，划分原则是什么样的？<br>
+CF即Columnfamily、列族。在常规数据库中，需要在创建表时确定都包含哪些列，运行中不能随意更改。而Tera为了提供了动态Schema，让用户可以随意增删列，同时又保证让访问控制有迹可循，所以将常规数据库中的列拆成了Columnfamily、Qualifier两个维度，Columnfamily是访问控制的最小单位，必须在创建表时指定。Qualifier是tera中实际的列，用户可以在运行期随意创建和删除，但Qualifier必须从属于某个Columnfamliy，便于确定归属和进行访问控制。<br>
+LG即Localitygroup、局部性群组，是对存储的一个优化。设想，我们可以将所有的列族存储在一起，但这样我们要单独访问一个列族时，效率就不够高，我们也可以将每个列族都单独存储，这样要单独访问一个列族效率很高，但要同时访问一行（或者同时访问多个列族）效率就会很低。所以在这里做了一个折衷，我们将一些经常要一起访问的列族存储在一起，成为一个Localitygroup，而经常单独访问的列族，可以单独作为一个Localitygroup存储。所以一个Localitygroup个存储维度的概念，而Columnfamily是个逻辑概念，一个Localitygroup可能包含1个或多个Columnfamily。<br></li>
+<li>mutation Reader 的读写接口中 的参数qualifier是什么？<br>
+如1中所述，qualifier是Tera中实际的列，或者说列名的意思。<br></li>
+<li>scan接口描述中在设置区间返回后，做了下面两个add，desc-&gt;AddColumnFamily("family21");desc-&gt;AddColumn("family22", "qualifier22");是指定scan的列么？如果不指定，可以scan整行么？scan多列之后，如何从result_stream中读某列数据？<br>
+AddColumnFamily是指定要scan的列族，如果指定就只scan出特定列族，如果不指定，会scan出整行，起一个过滤器的作用。<br>
+scan多列后，可以使用ResultStream的ToMap接口读取，也可以用Next遍历，找到某列数据。</li>
+<li>sdk中有tera.h，有tera_easy.h……这几个不同的头文件分别有什么用？<br>
+Tera的标准SDK在tera.h中，推荐用户使用，tera_easy.h是一个简化后的sdk，功能有限，一般用户不需要关注。<br>
+TeraSDK的使用，参见文档 <a href="https://github.com/baidu/tera/wiki/%E4%B8%BB%E8%A6%81API%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95">API使用方法</a><br></li>
+</ol>

@@ -29,6 +29,8 @@ typedef server::SetGroupQuotaRequest SetGroupQuotaRequest;
 typedef server::SetGroupQuotaResponse SetGroupQuotaResponse;
 typedef server::ListGroupRequest ListGroupRequest;
 typedef server::ListGroupResponse ListGroupResponse;
+typedef server::AddAppRequest AddAppRequest;
+typedef server::AddAppResponse AddAppResponse;
 
 ////// User //////
 typedef server::AddUserRequest AddUserRequest;
@@ -67,6 +69,8 @@ public:
                              UserSetGroupQuotaCallback* callback);
   virtual void ListGroup(const std::string& group_name, std::string* group_info,
                          StatusCode* status, UserListGroupCallback* callback);
+  virtual void AddApp(const std::string& group_name, const std::string& app_name, uint64_t cpu, uint64_t mem,
+                      uint64_t disk, uint64_t flash, StatusCode* status, UserAddAppCallback* callback);
 
   ////// User //////
   virtual void AddUser(const std::string& user_name, const std::string& passwd,
@@ -120,6 +124,12 @@ private:
                                  ListGroupResponse* response,
                                  std::string* group_info, StatusCode* status,
                                  UserListGroupCallback* callback, CondVar* cond);
+
+  virtual void AddAppCallback(sofa::pbrpc::RpcController* cntl,
+                                 AddAppRequest* request,
+                                 AddAppResponse* response,
+                                 StatusCode* status,
+                                 UserAddAppCallback* callback, CondVar* cond);
 
   ////// User //////
   virtual void AddUserCallback(sofa::pbrpc::RpcController* cntl,

@@ -32,9 +32,9 @@ message ListServiceRequest {
 }
 
 message ListServiceResponse {
-  //repeated Service services = 1;
-  optional string service_info = 1;
-  optional StatusCode status = 2;
+  optional Service services = 1;
+  optional string service_info = 2;
+  optional StatusCode status = 3;
 }
 
 ////// Group //////
@@ -63,9 +63,22 @@ message ListGroupRequest {
 
 message ListGroupResponse {
   // repeated string services = 1;
-  // repeated string users = 2;
+  optional Group group = 3;
   optional string group_info = 1;
   optional StatusCode status = 2;
+}
+
+message AddAppRequest {
+  optional string group_name = 1;
+  optional string app_name = 2;
+  optional uint64 cpu = 3;
+  optional uint64 mem = 4;
+  optional uint64 disk = 5;
+  optional uint64 flash = 6;
+}
+
+message AddAppResponse {
+  optional StatusCode status = 1;
 }
 
 ////// User //////
@@ -92,8 +105,9 @@ message ListUserRequest {
 }
 
 message ListUserResponse {
-  optional string user_info = 1;
-  optional StatusCode status = 2;
+  optional User user = 1;
+  optional string user_info = 2;
+  optional StatusCode status = 3;
 }
 
 ////// helpers //////
@@ -144,6 +158,15 @@ message Group {
   optional string group_name = 1;
   repeated Quota quota = 2;
   repeated string users = 3;
+  repeated App apps = 4;
+}
+
+message App {
+  optional string name = 1;
+  optional uint64 cpu = 2;
+  optional uint64 mem = 3;
+  optional uint64 disk = 4;
+  optional uint64 flash = 5;
 }
 
 service Server {
@@ -156,6 +179,7 @@ service Server {
   rpc AddGroup(AddGroupRequest) returns(AddGroupResponse);
   rpc SetGroupQuota(SetGroupQuotaRequest) returns(SetGroupQuotaResponse);
   rpc ListGroup(ListGroupRequest) returns(ListGroupResponse);
+  rpc AddApp(AddAppRequest) returns(AddAppResponse);
 
   ////// User //////
   rpc AddUser(AddUserRequest) returns(AddUserResponse);

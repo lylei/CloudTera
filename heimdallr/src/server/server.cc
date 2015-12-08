@@ -50,6 +50,7 @@ void ServerImpl::ListService(google::protobuf::RpcController* controller,
   SLOG(INFO, "receive ListService request: %s", request->service_name().c_str());
 
   StatusCode status = db_->ListService(request->service_name(),
+                                       response->mutable_services(),
                                        response->mutable_service_info());
 
   response->set_status(status);
@@ -93,7 +94,25 @@ void ServerImpl::ListGroup(google::protobuf::RpcController* controller,
   SLOG(INFO, "receive ListGroup request: %s", request->group_name().c_str());
 
   StatusCode status = db_->ListGroup(request->group_name(),
-                                       response->mutable_group_info());
+                                     response->mutable_group(),
+                                     response->mutable_group_info());
+
+  response->set_status(status);
+  done->Run();
+}
+
+void ServerImpl::AddApp(google::protobuf::RpcController* controller,
+                         const AddAppRequest* request,
+                         AddAppResponse* response,
+                         google::protobuf::Closure* done) {
+  SLOG(INFO, "receive AddApp request: %s", request->group_name().c_str());
+
+  StatusCode status = db_->AddApp(request->group_name(),
+                                     request->app_name(),
+                                     request->cpu(),
+                                     request->mem(),
+                                     request->disk(),
+                                     request->flash());
 
   response->set_status(status);
   done->Run();
@@ -134,6 +153,7 @@ void ServerImpl::ListUser(google::protobuf::RpcController* controller,
   SLOG(INFO, "receive ListUser request: %s", request->user_name().c_str());
 
   StatusCode status = db_->ListUser(request->user_name(),
+                                    response->mutable_user(),
                                     response->mutable_user_info());
 
   response->set_status(status);

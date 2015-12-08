@@ -32,7 +32,9 @@
 <!-- NAVBAR
 ================================================== -->
   <body>
-    <div id="head" class="navbar-wrapper"></div>
+  <!--
+    <div id="head" class="navbar-wrapper"></div>-->
+    {% include 'nav.html' %}
 
     <!-- Carousel
     ================================================== -->
@@ -48,7 +50,7 @@
           <img class="first-slide" src="/static/img/slide1.jpg" alt="First slide">
           <div class="container">
             <div class="carousel-caption">
-              <h1>Distributed table storge</h1>
+              <h1 class="page-header">Distributed table storge</h1>
               <p>Tera is a high-avaliable, easy-scalable, NoSql distributed storage system.</p>
               <p><a class="btn btn-lg btn-primary" href="#" role="button">Learn more</a></p>
             </div>
@@ -181,6 +183,7 @@
     <script src="/static/bootstrap/docs/assets/js/vendor/holder.min.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <script src="/static/bootstrap/docs/assets/js/ie10-viewport-bug-workaround.js"></script>
-    <script src="/static/js/index.js"></script>
+    <!--
+    <script src="/static/js/index.js"></script>-->
   </body>
 </html>
