@@ -31,6 +31,8 @@ typedef server::ListGroupRequest ListGroupRequest;
 typedef server::ListGroupResponse ListGroupResponse;
 typedef server::AddAppRequest AddAppRequest;
 typedef server::AddAppResponse AddAppResponse;
+typedef server::DelAppRequest DelAppRequest;
+typedef server::DelAppResponse DelAppResponse;
 
 ////// User //////
 typedef server::AddUserRequest AddUserRequest;
@@ -52,7 +54,7 @@ public:
   virtual void SetServiceResource(const std::string& service_name,
                                   const std::string& resource_name,
                                   const std::string& provider_name,
-                                  uint64_t quantity, StatusCode* status,
+                                  int64_t quantity, StatusCode* status,
                                   UserSetServiceResourceCallback* callback);
   virtual void ListService(const std::string& service_name,
                            std::string* service_info,
@@ -63,14 +65,18 @@ public:
   virtual void AddGroup(const std::string& group_name, StatusCode* status,
                         UserAddGroupCallback* callback);
   virtual void SetGroupQuota(const std::string& group_name,
-                             const std::string& service_name,
-                             const std::string& resource_name,
-                             uint64_t quota, StatusCode* status,
-                             UserSetGroupQuotaCallback* callback);
+                             const std::string& service_name, int64_t host, int64_t cpu,
+                             int64_t mem, int64_t disk, int64_t flash,
+                             StatusCode* status, UserSetGroupQuotaCallback* callback);
   virtual void ListGroup(const std::string& group_name, std::string* group_info,
                          StatusCode* status, UserListGroupCallback* callback);
-  virtual void AddApp(const std::string& group_name, const std::string& app_name, uint64_t cpu, uint64_t mem,
-                      uint64_t disk, uint64_t flash, StatusCode* status, UserAddAppCallback* callback);
+  virtual void AddApp(const std::string& group_name, const std::string& app_name,
+                      const std::string& app_id, int64_t host, int64_t cpu, int64_t mem,
+                      int64_t disk, int64_t flash, StatusCode* status,
+                      UserAddAppCallback* callback);
+  virtual void DelApp(const std::string& group_name, const std::string& app_name,
+                      const std::string& app_id, StatusCode* status,
+                      UserDelAppCallback* callback);
 
   ////// User //////
   virtual void AddUser(const std::string& user_name, const std::string& passwd,
@@ -130,6 +136,12 @@ private:
                                  AddAppResponse* response,
                                  StatusCode* status,
                                  UserAddAppCallback* callback, CondVar* cond);
+
+  virtual void DelAppCallback(sofa::pbrpc::RpcController* cntl,
+                                 DelAppRequest* request,
+                                 DelAppResponse* response,
+                                 StatusCode* status,
+                                 UserDelAppCallback* callback, CondVar* cond);
 
   ////// User //////
   virtual void AddUserCallback(sofa::pbrpc::RpcController* cntl,

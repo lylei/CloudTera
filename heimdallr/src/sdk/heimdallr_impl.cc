@@ -53,7 +53,7 @@ void HeimdallrImpl::AddService(const std::string& service_name,
 void HeimdallrImpl::SetServiceResource(const std::string& service_name,
                                        const std::string& resource_name,
                                        const std::string& provider_name,
-                                       uint64_t quantity,
+                                       int64_t quantity,
                                        StatusCode* status,
                                        UserSetServiceResourceCallback* callback) {
   SetServiceResourceRequest* request = new SetServiceResourceRequest();
@@ -126,14 +126,17 @@ void HeimdallrImpl::AddGroup(const std::string& group_name, StatusCode* status,
 
 void HeimdallrImpl::SetGroupQuota(const std::string& group_name,
                                   const std::string& service_name,
-                                  const std::string& resource_name,
-                                  uint64_t quota, StatusCode* status,
+                                  int64_t host, int64_t cpu, int64_t mem, int64_t disk,
+                                  int64_t flash, StatusCode* status,
                                   UserSetGroupQuotaCallback* callback) {
   SetGroupQuotaRequest* request = new SetGroupQuotaRequest();
   request->set_group_name(group_name);
   request->set_service_name(service_name);
-  request->set_resource_name(resource_name);
-  request->set_quota(quota);
+  request->set_host(host);
+  request->set_cpu(cpu);
+  request->set_mem(mem);
+  request->set_disk(disk);
+  request->set_flash(flash);
 
   SetGroupQuotaResponse* response = new SetGroupQuotaResponse();
   sofa::pbrpc::RpcController* cntl = new sofa::pbrpc::RpcController();
@@ -175,11 +178,15 @@ void HeimdallrImpl::ListGroup(const std::string& group_name,
   }
 }
 
-void HeimdallrImpl::AddApp(const std::string& group_name, const std::string& app_name, uint64_t cpu, uint64_t mem,
-                      uint64_t disk, uint64_t flash, StatusCode* status, UserAddAppCallback* callback) {
+void HeimdallrImpl::AddApp(const std::string& group_name, const std::string& app_name,
+                           const std::string& app_id, int64_t host, int64_t cpu, int64_t mem,
+                           int64_t disk, int64_t flash, StatusCode* status,
+                           UserAddAppCallback* callback) {
   AddAppRequest* request = new AddAppRequest();
   request->set_group_name(group_name);
   request->set_app_name(app_name);
+  request->set_app_id(app_id);
+  request->set_host(host);
   request->set_cpu(cpu);
   request->set_mem(mem);
   request->set_disk(disk);
@@ -196,6 +203,30 @@ void HeimdallrImpl::AddApp(const std::string& group_name, const std::string& app
                             request, response, status, callback, &cond);
 
   stub_->AddApp(cntl, request, response, done);
+  if (!callback) {
+    cond.Wait();
+  }
+}
+
+void HeimdallrImpl::DelApp(const std::string& group_name, const std::string& app_name,
+                      const std::string& app_id, StatusCode* status,
+                      UserDelAppCallback* callback) {
+  DelAppRequest* request = new DelAppRequest();
+  request->set_group_name(group_name);
+  request->set_app_name(app_name);
+  request->set_app_id(app_id);
+
+  DelAppResponse* response = new DelAppResponse();
+  sofa::pbrpc::RpcController* cntl = new sofa::pbrpc::RpcController();
+  cntl->SetTimeout(3000);
+
+  Mutex mutex;
+  CondVar cond(&mutex);
+  google::protobuf::Closure* done =
+    sofa::pbrpc::NewClosure(this, &HeimdallrImpl::DelAppCallback, cntl,
+                            request, response, status, callback, &cond);
+
+  stub_->DelApp(cntl, request, response, done);
   if (!callback) {
     cond.Wait();
   }
@@ -388,8 +419,7 @@ void HeimdallrImpl::SetGroupQuotaCallback(sofa::pbrpc::RpcController* cntl,
   *status = response->status();
 
   if (callback) {
-    (*callback)(request->group_name(), request->service_name(),
-                request->resource_name(), request->quota(), status);
+    (*callback)(request->group_name(), request->service_name(), status);
     delete callback;
   } else {
     cond->Signal();
@@ -436,6 +466,28 @@ void HeimdallrImpl::AddAppCallback(sofa::pbrpc::RpcController* cntl,
 
   if (callback) {
     (*callback)(request->group_name(), request->app_name(), status);
+    delete callback;
+  } else {
+    cond->Signal();
+  }
+
+  delete cntl;
+  delete request;
+  delete response;
+}
+
+void HeimdallrImpl::DelAppCallback(sofa::pbrpc::RpcController* cntl,
+                                   DelAppRequest* request,
+                                   DelAppResponse* response,
+                                   StatusCode* status,
+                                   UserDelAppCallback* callback, CondVar* cond) {
+  if (cntl->Failed()) {
+    SLOG(ERROR, "rpc failed: %s", cntl->ErrorText().c_str());
+  }
+  *status = response->status();
+
+  if (callback) {
+    (*callback)(request->group_name(), request->app_name(), request->app_id(), status);
     delete callback;
   } else {
     cond->Signal();

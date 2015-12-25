@@ -74,14 +74,14 @@ void ServerImpl::SetGroupQuota(google::protobuf::RpcController* controller,
                                const SetGroupQuotaRequest* request,
                                SetGroupQuotaResponse* response,
                                google::protobuf::Closure* done) {
-  SLOG(INFO, "receive SetGroupQuota request: %s %s %s %llu",
+  SLOG(INFO, "receive SetGroupQuota request: %s %s host=%llu cpu=%llu mem=%llu disk=%llu flash=%llu",
        request->group_name().c_str(), request->service_name().c_str(),
-       request->resource_name().c_str(), request->quota());
+       request->host(), request->cpu(), request->mem(), request->disk(), request->flash());
 
   StatusCode status = db_->SetGroupQuota(request->group_name(),
                                          request->service_name(),
-                                         request->resource_name(),
-                                         request->quota());
+                                         request->host(), request->cpu(), request->mem(),
+                                         request->disk(), request->flash());
 
   response->set_status(status);
   done->Run();
@@ -108,11 +108,27 @@ void ServerImpl::AddApp(google::protobuf::RpcController* controller,
   SLOG(INFO, "receive AddApp request: %s", request->group_name().c_str());
 
   StatusCode status = db_->AddApp(request->group_name(),
-                                     request->app_name(),
-                                     request->cpu(),
-                                     request->mem(),
-                                     request->disk(),
-                                     request->flash());
+                                  request->app_name(),
+                                  request->app_id(),
+                                  request->host(),
+                                  request->cpu(),
+                                  request->mem(),
+                                  request->disk(),
+                                  request->flash());
+
+  response->set_status(status);
+  done->Run();
+}
+
+void ServerImpl::DelApp(google::protobuf::RpcController* controller,
+                         const DelAppRequest* request,
+                         DelAppResponse* response,
+                         google::protobuf::Closure* done) {
+  SLOG(INFO, "receive DelApp request: %s", request->group_name().c_str());
+
+  StatusCode status = db_->DelApp(request->group_name(),
+                                  request->app_name(),
+                                  request->app_id());
 
   response->set_status(status);
   done->Run();

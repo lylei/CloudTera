@@ -53,6 +53,10 @@ private:
                          const AddAppRequest* request,
                          AddAppResponse* response,
                          google::protobuf::Closure* done);
+  virtual void DelApp(google::protobuf::RpcController* controller,
+                         const DelAppRequest* request,
+                         DelAppResponse* response,
+                         google::protobuf::Closure* done);
 
   ////// User //////
   virtual void AddUser(google::protobuf::RpcController* controller,

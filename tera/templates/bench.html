@@ -7,6 +7,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="">
     <meta name="author" content="">
+    <link rel="icon" href="/static/img/favicon.ico">
 
     <title>Contact·Tera</title>
 
@@ -45,6 +46,7 @@
         <div class="row">
             <div id="graphic" class="col-md-12">
                 <div id="main-1" style="height:400px;width:100%"></div>
+                <div align=center> <input id=box0 type="checkbox" checked="checked" onclick="abs_click(this, 0)"> Absolute position </div>
             </div><!--/span-->
         </div><!--/row-->
       </div><!--/.fluid-container-->
@@ -57,6 +59,33 @@
         <div class="row">
           <div id="graphic" class="col-md-12">
             <div id="main-2" style="height:400px;width:100%"></div>
+            <div align=center> <input id=box1 type="checkbox" checked="checked" onclick="abs_click(this, 1)"> Absolute position </div>
+          </div><!--/span-->
+        </div><!--/row-->
+      </div><!--/.fluid-container-->
+
+      <div class="container featuretten col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1">
+        <h1 class="page-header"></h1>
+      </div>
+
+      <div class="container featuretten col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1">
+        <div class="row">
+          <div id="graphic" class="col-md-12">
+            <div id="main-3" style="height:400px;width:100%"></div>
+            <div align=center> <input id=box2 type="checkbox" checked="checked" onclick="abs_click(this, 2)"> Absolute position </div>
+          </div><!--/span-->
+        </div><!--/row-->
+      </div><!--/.fluid-container-->
+
+      <div class="container featuretten col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1">
+        <h1 class="page-header"></h1>
+      </div>
+
+      <div class="container featuretten col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1">
+        <div class="row">
+          <div id="graphic" class="col-md-12">
+            <div id="main-4" style="height:400px;width:100%"></div>
+            <div align=center> <input id=box3 type="checkbox" checked="checked" onclick="abs_click(this, 3)"> Absolute position </div>
           </div><!--/span-->
         </div><!--/row-->
       </div><!--/.fluid-container-->
@@ -67,6 +96,10 @@
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     <script type="text/javascript">
+        var abs_pos = new Array();
+        for (i=0; i < 4; i++) {
+          abs_pos[i] = document.getElementById("box"+i).checked;
+        }
         require.config({
             packages: [
                 {
@@ -76,22 +109,25 @@
                 },
                 {
                     name: 'zrender',
-                    location: 'http://ecomfe.github.io/zrender/src',
-                    //location: '../../../zrender/src',
+                    //location: 'http://ecomfe.github.io/zrender/src',
+                    location: '/static/zrender/src',
                     main: 'zrender'
                 }
             ]
         });
 
-        var write = {{write|safe}}
-        var read = {{read|safe}}
+        var w_disk = {{rw_disk|safe}}
+        var r_disk = {{r_disk|safe}}
+        var w_flash = {{rw_flash|safe}}
+        var r_flash = {{r_flash|safe}}
 
 
-        var data_set = [write, read];
+        var data_set = [w_disk, r_disk, w_flash, r_flash];
         var s = [];
+        var ts = [];
         for (var i = 0; i < data_set.length; ++i) {
             var names = data_set[i].names;
-            var ts = data_set[i].ts;
+            ts.push(data_set[i].ts);
             var data = data_set[i].data;
 
             var tmp = new Array();
@@ -101,6 +137,8 @@
                 chart.type = 'line';
                 chart.data = data[j];
                 chart.yAxisIndex = j;
+                chart.symbol = "none";
+                chart.smooth = true;
                 tmp.push(chart)
             }
             s.push(tmp)
@@ -117,11 +155,11 @@
             }
         }
 
-        var names = [write.names, read.names];
+        var names = [w_disk.names, r_disk.names, w_flash.names, r_flash.names];
         var options = new Array();
 
-        var titles = ['Random Write', 'Random Read']
-        var yAxises = [['M/s', 'times'], ['QPS', 'times']]
+        var titles = ['Random Write - Disk', 'Random Read - Disk', 'Random Write - Flash', 'Random Read - Flash']
+        var yAxises = [['M/s', 'times'], ['QPS', 'times'], ['M/s', 'times'], ['QPS', 'times']]
         for (var i = 0; i < names.length; ++i) {
             var option = {
                 title : {
@@ -142,30 +180,30 @@
                 xAxis : [
                     {
                         type : 'category',
-                        data : ts
+                        data : ts[i]
                     }
                 ],
                 yAxis : [
                     {
                         name : yAxises[i][0],
                         type : 'value',
-                        //scale : true,
+                        scale : !abs_pos[i],
                         splitNumber: 6,
                         splitArea : {show : true}
                     },
                     {
                         name : yAxises[i][1],
-                        type : 'value',
+                        type : !abs_pos[i],
                         //scale : true,
                         splitNumber: 6,
-                        splitArea : {show : true}
+                        //splitArea : {show : true}
                     }
                 ],
                 series : s[i]
             };
             options.push(option)
         }
-
+        var myCharts = new Array();
         require(
             [
                 'echarts',
@@ -173,18 +211,32 @@
                 'echarts/chart/bar'
             ],
             function (ec) {
-                var elements = ['main-1', 'main-2'];
+                var elements = ['main-1', 'main-2', 'main-3', 'main-4'];
                 //var options = [option, option_read]
                 for (var i = 0; i < elements.length; ++i) {
-                    var myChart = ec.init(document.getElementById(elements[i]));
-                    myChart.showLoading({
+                    myCharts[i] = ec.init(document.getElementById(elements[i]));
+                    myCharts[i].showLoading({
                         test: "Loading..."
                     });
-                    myChart.hideLoading();
-                    myChart.setOption(options[i]);
+                    myCharts[i].hideLoading();
+                    myCharts[i].setOption(options[i]);
                 }
             }
         )
+      function abs_click(box, id) {
+          if (box.checked) {
+            abs_pos[id] = true;
+          } else {
+            abs_pos[id] = false;
+          }
+          options[id].animation = false;
+          options[id].yAxis[0].scale = !abs_pos[id];
+          options[id].yAxis[1].scale = !abs_pos[id];
+          myCharts[id].clear();
+          myCharts[id].setOption(options[id]);
+          myCharts[id].refresh();
+          //alert(abs_pos);
+      }
     </script>
 
     <!-- Bootstrap core JavaScript

@@ -26,8 +26,16 @@ def bench(request):
         return HttpResponse(eva.write_eva_data(request))
     elif request.method == 'GET':
         user = get_user(request)
-        rwrite_data, read_data = eva.read_eva_data(request)
-        return render(request, 'bench.html', {'write': rwrite_data, 'read': read_data, 'user': [user]})
+        rw_disk, r_disk, rw_flash, r_flash = eva.read_eva_data(request)
+        data = {}
+        data['name'] = ['cpu(%)', 'memory(G)', 'write(M/s)', 'read(qps)']
+        if 'cluster' in request.GET:
+            data['stat'] = eva.read_trace(encode_utf8(request.GET['cluster']))
+        #return HttpResponse(str(r_flash))
+        return render(request, 'bench.html', {'rw_disk': rw_disk, 'r_disk': r_disk,
+                                              'rw_flash': rw_flash, 'r_flash': r_flash,
+                                              'data': data,
+                                              'user': [user]})
 
 
 def api(request):
@@ -74,15 +82,17 @@ def dash(request):
                                          'provide_names': provid_dict.keys(), 'provides': provid_dict.values(),
                                          'user': [user]})
 
-
 def overview(request):
     user, group_list, quota_dict, apps = parse_group_quota(request)
     return render(request, 'dash/overview.html', {'user': [user], 'groups':group_list, 'quota': quota_dict})
 
 def tera(request):
     user, group_list, quota_dict, apps = parse_group_quota(request)
-    #return HttpResponse(str(apps))
-    return render(request, 'dash/tera.html', {'user': [user], 'groups':group_list, 'quota': quota_dict, 'apps': apps})
+    data = {}
+    data['name'] = ['cpu(%)', 'memory(G)', 'write(M/s)', 'read(qps)']
+    if 'cluster' in request.GET:
+        data['stat'] = eva.read_trace(encode_utf8(request.GET['cluster']))
+    return render(request, 'dash/tera.html', {'user': [user], 'groups':group_list, 'quota': quota_dict, 'apps': apps, 'data': data})
 
 
 def nexus(request):
@@ -135,29 +145,9 @@ def join(request):
 
 def test(request):
     if request.method == 'GET':
-        galaxy_info = cli.list_serv('galaxy')
-        groups = galaxy_info['groups']
-        # need to encode data
-        # s.encode('utf-8')
-        resources = galaxy_info['resources']
-        names = []
-        caps_dict = {}
-        used = []
-        for i in range(len(resources)):
-            resource = resources[i]
-            name = resource['resource_name'].encode('utf-8')
-            names.append(name)
-            caps_dict[name] = resource['capacity']
-            used.append(resource['capacity'] - resource['left'])
-
-        provides = galaxy_info['providers']
-        provid_dict = {}
-        for n in names:
-            provid_dict.update({n: []})
-        for p in provides:
-            provid_dict[p['resource_name']].append({'name': p['name'].encode('utf-8'),
-                                                    'quantity': p['quantity'],
-                                                    'cap': caps_dict[p['resource_name']]})
+        user = get_user(request)
+        rw_disk, r_disk, rw_flash, r_flash = eva.read_eva_data(request)
+        return HttpResponse(str(r_flash))
 
 
         return HttpResponse(str(used))

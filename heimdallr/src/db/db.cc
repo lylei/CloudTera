@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <leveldb/status.h>
+#include <timer.h>
 
 #include "src/proto/server_rpc.pb.h"
 #include "db.h"
@@ -23,36 +24,40 @@ DB::DB() {
 }
 
 StatusCode DB::init() {
+  logger_ = new common::LogStream(INFO);
+  common::SetLogFile("./dblog");
+
+  LOGS(INFO) << "log init ok!";
   leveldb::Options options;
   options.create_if_missing = true;
   leveldb::Status status = leveldb::DB::Open(options, CONF_GROUP_DB, &group_db_);
   if (status.ok()) {
-    std::cout << CONF_GROUP_DB << " init OK\n";
+    LOGS(INFO) << CONF_GROUP_DB << " init OK\n";
   } else {
-    std::cout << status.ToString() << std::endl;
+    LOGS(INFO) << status.ToString();
     return kDBInitError;
   }
 
   status = leveldb::DB::Open(options, CONF_SERVICE_DB, &service_db_);
   if (status.ok()) {
-    std::cout << CONF_SERVICE_DB << " init OK\n";
+    LOGS(INFO) << CONF_SERVICE_DB << " init OK\n";
   } else {
-    std::cout << status.ToString() << std::endl;
+    LOGS(INFO) << status.ToString();
     return kDBInitError;
   }
 
   status = leveldb::DB::Open(options, CONF_USER_DB, &user_db_);
   if (status.ok()) {
-    std::cout << CONF_USER_DB << " init OK\n";
+    LOGS(INFO) << CONF_USER_DB << " init OK\n";
   } else {
-    std::cout << status.ToString() << std::endl;
+    LOGS(INFO) << status.ToString();
     return kDBInitError;
   }
   return kOK;
 }
 
 StatusCode DB::AddService(const std::string& service_name) {
-  std::cout << "in db AddService\n";
+  LOGS(INFO) << "in db AddService\n";
   std::string res;
   leveldb::Status status = service_db_->Get(roption_, service_name, &res);
   if (!status.IsNotFound()) {
@@ -63,85 +68,70 @@ StatusCode DB::AddService(const std::string& service_name) {
 
   res.clear();
   service.SerializeToString(&res);
-  std::cout << "debug string: " << service.ShortDebugString() << std::endl;
+  LOGS(INFO) << "debug string: " << service.ShortDebugString();
 
   status = service_db_->Put(woption_, service_name, res);
   if (!status.ok()) {
-    std::cout << status.ToString() << std::endl;
+    LOGS(INFO) << status.ToString();
     return kDBWriteError;
   }
-  std::cout << res << std::endl;
+  LOGS(INFO) << res;
   return kOK;
 }
 
 StatusCode DB::SetServiceResource(const std::string& service_name,
                                   const std::string& resource_name,
                                   const std::string& provider_name,
-                                  uint64_t quantity) {
-  std::cout << "in db SetServiceResource\n";
+                                  int64_t quantity) {
+  LOGS(INFO) << "in db SetServiceResource\n";
   Service service;
   StatusCode status =  GetService(service_name, &service);
   if (status != kOK) {
     return status;
   }
-  std::cout << "get service: " << service.ShortDebugString() << std::endl;
+  LOGS(INFO) << "get service: " << service.ShortDebugString();
 
   // update provider info
-  uint32_t provider_num = service.providers_size();
-  std::cout << "provider_num:" << provider_num << std::endl;
-  bool found = false;
-  for (int i = 0; i < provider_num; ++i) {
-    Provider* provider = service.mutable_providers(i);
-    if (provider->resource_name() == resource_name &&
-        provider->name() == provider_name) {
-      found = true;
-      provider->set_quantity(provider->quantity() + quantity);
-      break;
-    } else {
-      std::cout << "old res:" << provider->resource_name() << ":" << resource_name
-                << "\n old name:" << provider->name() << ":" << provider_name
-                << std::endl;
-    }
-  }
-  if (!found) {
-    Provider* provider = service.add_providers();
-    provider->set_resource_name(resource_name);
-    provider->set_name(provider_name);
-    provider->set_quantity(quantity);
-    std::cout << "new provider: " << provider->ShortDebugString() << std::endl;
-  }
+  Provider* provider = service.add_providers();
+  provider->set_resource_name(resource_name);
+  provider->set_name(provider_name);
+  provider->set_quantity(quantity);
+  provider->set_ts(common::timer::now_time());
+  LOGS(INFO) << "new provider: " << provider->ShortDebugString();
 
   // update resource info
-  found = false;
-  uint32_t resource_num = service.resources_size();
-  for (int i = 0; i < resource_num; ++i) {
-    Resource* resource = service.mutable_resources(i);
-    if (resource->resource_name() == resource_name) {
-      found = true;
-      resource->set_capacity(resource->capacity() + quantity);
-      History* history = resource->add_history();
-      history->set_capacity(resource->capacity());
-      history->set_ts(history->ts() + 1);
-      std::cout << "set resource: " << resource->ShortDebugString() << std::endl;
-      break;
+  Resource* resource;
+  StatusCode rs = GetResource(&service, resource_name, &resource);
+  if (rs == kOK) {
+    if (resource->left() + quantity < 0) {
+      return kResourceRunOut;
     }
-  }
-  if (!found) {
-    Resource* resource = service.add_resources();
+    resource->set_capacity(resource->capacity() + quantity);
+    resource->set_left(resource->left() + quantity);
+    History* history = resource->add_history();
+    history->set_capacity(resource->capacity());
+    history->set_ts(common::timer::now_time());
+    LOGS(INFO) << "set resource: " << resource->ShortDebugString();
+  } else if (rs == kResourceNotFound) {
+    resource = service.add_resources();
     resource->set_resource_name(resource_name);
     resource->set_capacity(quantity);
     resource->set_left(quantity);
 
     History* history = resource->add_history();
     history->set_capacity(resource->capacity());
-    history->set_ts(0);
+    history->set_ts(common::timer::now_time());
+  } else {
+    LOGS(WARNING) << "Error in SetServiceResource::GetResource: " << StatusCode_Name(rs);
+    return rs;
   }
+
   std::string result_str;
   service.SerializeToString(&result_str);
-  std::cout << "resutl str: " << service.ShortDebugString() << std::endl;
+  LOGS(INFO) << "resutl str: " << service.ShortDebugString();
   leveldb::Status s = service_db_->Put(woption_, service_name, result_str);
   if (!s.ok()) {
-    std::cout << s.ToString() << std::endl;
+    LOGS(INFO) << s.ToString();
     return kDBWriteError;
   }
 
@@ -150,7 +140,7 @@ StatusCode DB::SetServiceResource(const std::string& service_name,
 
 StatusCode DB::ListService(const std::string& service_name, Service* services,
                            std::string* service_info) {
-  std::cout << "in db ListService\n";
+  LOGS(INFO) << "in db ListService\n";
   std::string service_str;
   leveldb::Status status = service_db_->Get(roption_, service_name, &service_str);
   //*services = service_str;
@@ -161,12 +151,12 @@ StatusCode DB::ListService(const std::string& service_name, Service* services,
   s.ParseFromString(service_str);
   *services = s;
   *service_info = s.ShortDebugString();
-  //std::cout << *services << std::endl;
+  //LOGS(INFO) << *services;
   return kOK;
 }
 
 StatusCode DB::AddGroup(const std::string& group_name) {
-  std::cout << "in db AddSAddGroupervice\n";
+  LOGS(INFO) << "in db AddSAddGroupervice\n";
   std::string res;
   leveldb::Status status = group_db_->Get(roption_, group_name, &res);
   if (!status.IsNotFound()) {
@@ -177,22 +167,22 @@ StatusCode DB::AddGroup(const std::string& group_name) {
 
   res.clear();
   group.SerializeToString(&res);
-  std::cout << "debug string: " << group.ShortDebugString() << std::endl;
+  LOGS(INFO) << "debug string: " << group.ShortDebugString();
 
   status = group_db_->Put(woption_, group_name, res);
   if (!status.ok()) {
-    std::cout << status.ToString() << std::endl;
+    LOGS(INFO) << status.ToString();
     return kDBWriteError;
   }
-  std::cout << res << std::endl;
+  LOGS(INFO) << res;
   return kOK;
 }
 
 StatusCode DB::SetGroupQuota(const std::string& group_name,
                              const std::string& service_name,
-                             const std::string& resource_name,
-                             uint64_t quota) {
-  std::cout << "in db SetGroupQuota\n";
+                             int64_t host, int64_t cpu, int64_t mem,
+                             int64_t disk, int64_t flash) {
+  LOGS(INFO) << "in db SetGroupQuota\n";
   Service service;
   StatusCode s = GetService(service_name, &service);
   if (s != kOK) {
@@ -205,70 +195,69 @@ StatusCode DB::SetGroupQuota(const std::string& group_name,
   }
 
   // update resource
-  bool found = false;
-  uint32_t resource_num = service.resources_size();
-  for (int i = 0; i < resource_num; ++i) {
-    Resource* resource = service.mutable_resources(i);
-    if (resource->resource_name() == resource_name) {
-      found = true;
+  Resource* resource;
+  std::string resource_names[5] = {"host", "cpu", "mem", "disk", "flash"};
+  int64_t quotas[5] = {host, cpu, mem, disk, flash};
+  for (int i = 0; i < 5; ++i) {
+    const std::string& resource_name = resource_names[i];
+    int64_t quota = quotas[i];
+    if (quota == 0) {
+      continue;
+    }
+    StatusCode rs = GetResource(&service, resource_name, &resource);
+    if (rs == kOK) {
       if (resource->left() < quota) {
+        LOGS(WARNING) << "run out: " << resource->left() << ":" << quota;
         return kResourceRunOut;
       } else {
         UsedBy* used_by = resource->add_used_by();
         used_by->set_group_name(group_name);
         used_by->set_quantity(quota);
+        used_by->set_ts(common::timer::now_time());
         resource->set_left(resource->left() - quota);
-        std::cout << resource->ShortDebugString() << std::endl;
-
-        std::string result_str;
-        service.SerializeToString(&result_str);
-        std::cout << "resutl str: " << service.ShortDebugString() << std::endl;
-        leveldb::Status s = service_db_->Put(woption_, service_name, result_str);
-        if (!s.ok()) {
-          std::cout << s.ToString() << std::endl;
-          return kDBWriteError;
-        }
+        LOGS(INFO) << resource->ShortDebugString();
       }
-      break;
-    }
-  }
-  if (!found) {
-    return kResourceNotFound;
-  }
-
-  // update server_group info
-  found = false;
-  uint32_t serv_group_num = service.groups_size();
-  for (int i = 0; i < serv_group_num; ++i) {
-    if (group_name == service.groups(i)) {
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    service.add_groups(group_name);
-    std::string result_str;
-    service.SerializeToString(&result_str);
-    std::cout << "resutl str: " << service.ShortDebugString() << std::endl;
-    leveldb::Status s = service_db_->Put(woption_, service_name, result_str);
-    if (!s.ok()) {
-      std::cout << s.ToString() << std::endl;
-      return kDBWriteError;
+    } else if (rs == kResourceNotFound) {
+      return kResourceNotFound;
+    } else {
+      LOGS(WARNING) << "Error in SetServiceResource::GetResource: " << StatusCode_Name(rs);
+      return rs;
     }
   }
 
   // update group info
-  Quota* group_quota = group.add_quota();
-  group_quota->set_service_name(service_name);
-  group_quota->set_resource_name(resource_name);
-  group_quota->set_quota(quota);
+  if (group.host_left() + host >= 0 && group.cpu_left() + cpu >= 0 &&
+      group.mem_left() + mem >= 0 && group.disk_left() + disk >= 0 &&
+      group.flash_left() + flash >= 0) {
+    group.set_host_quota(group.host_quota() + host);
+    group.set_host_left(group.host_left() + host);
+    group.set_cpu_quota(group.cpu_quota() + cpu);
+    group.set_cpu_left(group.cpu_left() + cpu);
+    group.set_mem_quota(group.mem_quota() + mem);
+    group.set_mem_left(group.mem_left() + mem);
+    group.set_disk_quota(group.disk_quota() + disk);
+    group.set_disk_left(group.disk_left() + disk);
+    group.set_flash_quota(group.flash_quota() + flash);
+    group.set_flash_left(group.flash_left() + flash);
+  } else {
+    LOGS(WARNING) << "Quota can't be negative";
+    return kQuotaInvalid;
+  }
 
   std::string result_str;
+  service.SerializeToString(&result_str);
+  LOGS(INFO) << "resutl str: " << service.ShortDebugString();
+  leveldb::Status ls = service_db_->Put(woption_, service_name, result_str);
+  if (!ls.ok()) {
+    LOGS(INFO) << ls.ToString();
+    return kDBWriteError;
+  }
+
   group.SerializeToString(&result_str);
-  std::cout << "resutl str: " << group.ShortDebugString() << std::endl;
+  LOGS(INFO) << "resutl str: " << group.ShortDebugString();
   leveldb::Status status = group_db_->Put(woption_, group_name, result_str);
   if (!status.ok()) {
-    std::cout << status.ToString() << std::endl;
+    LOGS(WARNING) << status.ToString();
     return kDBWriteError;
   }
 
@@ -276,7 +265,7 @@ StatusCode DB::SetGroupQuota(const std::string& group_name,
 }
 
 StatusCode DB::ListGroup(const std::string& group_name, Group* group, std::string* group_info) {
-  std::cout << "in db ListGroup\n";
+  LOGS(INFO) << "in db ListGroup\n";
   std::string group_str;
   leveldb::Status status = group_db_->Get(roption_, group_name, &group_str);
   if (status.IsNotFound()) {
@@ -286,30 +275,99 @@ StatusCode DB::ListGroup(const std::string& group_name, Group* group, std::strin
   g.ParseFromString(group_str);
   *group = g;
   *group_info = g.ShortDebugString();
-  std::cout << *group_info << std::endl;
+  LOGS(INFO) << *group_info;
   return kOK;
 }
 
 StatusCode DB::AddApp(const std::string& group_name, const std::string& app_name,
-                    uint64_t cpu, uint64_t mem, uint64_t disk, uint64_t flash) {
+                      const std::string& app_id, int64_t host, int64_t cpu, int64_t mem,
+                      int64_t disk, int64_t flash) {
   Group group;
   StatusCode s = GetGroup(group_name, &group);
   if (s != kOK) {
     return s;
   }
-  App* app = group.add_apps();
-  app->set_name(app_name);
-  app->set_cpu(cpu);
-  app->set_mem(mem);
-  app->set_disk(disk);
-  app->set_flash(flash);
-  
+  s = GetApp(&group, app_name, app_id);
+  if (s == kAppExists) {
+    return s;
+  }
+  if (group.host_left() >= host && group.cpu_left() >= cpu &&
+      group.mem_left() >= mem && group.disk_left() >= disk &&
+      group.flash_left() >= flash) {
+    App* app = group.add_apps();
+    app->set_name(app_name);
+    app->set_id(app_id);
+    app->set_host(host);
+    app->set_cpu(cpu);
+    app->set_mem(mem);
+    app->set_disk(disk);
+    app->set_flash(flash);
+    group.set_host_left(group.host_left() - host);
+    group.set_cpu_left(group.cpu_left() - cpu);
+    group.set_mem_left(group.mem_left() - mem);
+    group.set_disk_left(group.disk_left() - disk);
+    group.set_flash_left(group.flash_left() - flash);
+  } else {
+    LOGS(WARNING) << "resource run out";
+    return kResourceRunOut;
+  }
+
   std::string result_str;
   group.SerializeToString(&result_str);
-  std::cout << "resutl str: " << group.ShortDebugString() << std::endl;
+  LOGS(INFO) << "resutl str: " << group.ShortDebugString();
   leveldb::Status status = group_db_->Put(woption_, group_name, result_str);
   if (!status.ok()) {
-    std::cout << status.ToString() << std::endl;
+    LOGS(INFO) << status.ToString();
+    return kDBWriteError;
+  }
+  return kOK;
+}
+
+StatusCode DB::DelApp(const std::string& group_name, const std::string& app_name,
+                      const std::string& app_id) {
+  Group group;
+  StatusCode s = GetGroup(group_name, &group);
+  if (s != kOK) {
+    return s;
+  }
+  s = GetApp(&group, app_name, app_id);
+  if (s != kAppExists) {
+    return s;
+  }
+
+  std::vector<App> new_apps;
+  for(int i = 0; i < group.apps_size(); ++i) {
+    App cur_app = group.apps(i);
+    if (cur_app.name() == app_name && cur_app.id() == app_id) {
+      group.set_host_left(group.host_left() + cur_app.host());
+      group.set_cpu_left(group.cpu_left() + cur_app.cpu());
+      group.set_mem_left(group.mem_left() + cur_app.mem());
+      group.set_disk_left(group.disk_left() + cur_app.disk());
+      group.set_flash_left(group.flash_left() + cur_app.flash());
+    } else {
+      App tmp;
+      tmp.CopyFrom(cur_app);
+      new_apps.push_back(tmp);
+    }
+  }
+  group.clear_apps();
+  for (int i = 0; i < new_apps.size(); ++i) {
+    App cur = new_apps[i];
+    App* app = group.add_apps();
+    app->set_name(cur.name());
+    app->set_id(cur.id());
+    app->set_host(cur.host());
+    app->set_cpu(cur.cpu());
+    app->set_mem(cur.mem());
+    app->set_disk(cur.disk());
+    app->set_flash(cur.flash());
+  }
+  std::string result_str;
+  group.SerializeToString(&result_str);
+  LOGS(INFO) << "resutl str: " << group.ShortDebugString();
+  leveldb::Status status = group_db_->Put(woption_, group_name, result_str);
+  if (!status.ok()) {
+    LOGS(INFO) << status.ToString();
     return kDBWriteError;
   }
 
@@ -317,26 +375,25 @@ StatusCode DB::AddApp(const std::string& group_name, const std::string& app_name
 }
 
 StatusCode DB::AddUser(const std::string& user_name, const std::string& passwd) {
-  std::cout << "in db AddUser\n";
-  std::string res;
-  leveldb::Status status = user_db_->Get(roption_, user_name, &res);
-  if (!status.IsNotFound()) {
+  LOGS(INFO) << "in db AddUser\n";
+  StatusCode us = GetUser(user_name, NULL);
+  if (us != kUserNotFound) {
     return kUserExists;
   }
+
   User user;
   user.set_user_name(user_name);
   user.set_token(passwd);
 
-  res.clear();
+  std::string res;
   user.SerializeToString(&res);
-  std::cout << "debug string: " << user.ShortDebugString() << std::endl;
+  LOGS(INFO) << "debug string: " << user.ShortDebugString();
 
-  status = user_db_->Put(woption_, user_name, res);
+  leveldb::Status status = user_db_->Put(woption_, user_name, res);
   if (!status.ok()) {
-    std::cout << status.ToString() << std::endl;
+    LOGS(INFO) << status.ToString();
     return kDBWriteError;
   }
-  std::cout << res << std::endl;
   return kOK;
 }
 
@@ -353,29 +410,39 @@ StatusCode DB::AddUserToGroup(const std::string& user_name,
     return s;
   }
 
+  s = GetUserInGroup(&group, user_name);
+  if (s == kOK) {
+    return kUserExists;
+  } else if (s == kUserNotFound) {
+    // ok
+  } else {
+    LOGS(WARNING) << StatusCode_Name(s);
+    return s;
+  }
+
   group.add_users(user_name);
   std::string result_str;
   group.SerializeToString(&result_str);
-  std::cout << "resutl str: " << group.ShortDebugString() << std::endl;
+  LOGS(INFO) << "resutl str: " << group.ShortDebugString();
   leveldb::Status status = group_db_->Put(woption_, group_name, result_str);
   if (!status.ok()) {
-    std::cout << status.ToString() << std::endl;
+    LOGS(INFO) << status.ToString();
     return kDBWriteError;
   }
 
   user.add_groups(group_name);
   user.SerializeToString(&result_str);
-  std::cout << "resutl str: " << user.ShortDebugString() << std::endl;
+  LOGS(INFO) << "resutl str: " << user.ShortDebugString();
   status = user_db_->Put(woption_, user_name, result_str);
   if (!status.ok()) {
-    std::cout << status.ToString() << std::endl;
+    LOGS(INFO) << status.ToString();
     return kDBWriteError;
   }
   return kOK;
 }
 
 StatusCode DB::ListUser(const std::string& user_name, User* user, std::string* user_info) {
-  std::cout << "in db ListUser:" << user_name << std::endl;
+  LOGS(INFO) << "in db ListUser:" << user_name;
   std::string user_str;
   leveldb::Status status = user_db_->Get(roption_, user_name, &user_str);
   if (status.IsNotFound()) {
@@ -390,13 +457,13 @@ StatusCode DB::ListUser(const std::string& user_name, User* user, std::string* u
     user_info->append(u.groups(i));
     user_info->append(";");
   }
-  std::cout << *user_info << std::endl;
-  std::cout << u.ShortDebugString() << std::endl;
+  LOGS(INFO) << *user_info;
+  LOGS(INFO) << u.ShortDebugString();
   return kOK;
 }
 
 StatusCode DB::GetService(const std::string& service_name, Service* service) {
-  std::cout << "in db GetService:" << service_name << std::endl;
+  LOGS(INFO) << "in db GetService:" << service_name;
   std::string service_str;
   leveldb::Status status = service_db_->Get(roption_, service_name, &service_str);
   if (status.IsNotFound()) {
@@ -408,13 +475,30 @@ StatusCode DB::GetService(const std::string& service_name, Service* service) {
   return kOK;
 }
 
+StatusCode DB::GetResource(Service* service, const std::string& resource_name, Resource** resource) {
+  LOGS(INFO) << "in db GetService:" << resource_name;
+  uint32_t resource_num = service->resources_size();
+  for (int i = 0; i < resource_num; ++i) {
+    Resource* cur_resource = service->mutable_resources(i);
+    if (cur_resource->resource_name() == resource_name) {
+      *resource = cur_resource;
+      LOGS(INFO) << "resource found: " << resource_name;
+      return kOK;
+    }
+  }
+  LOGS(INFO) << "resource not found: " << resource_name;
+  return kResourceNotFound;
+}
+
 StatusCode DB::GetGroup(const std::string& group_name, Group* group) {
-  std::cout << "in db GetGroup:" << group_name << std::endl;
+  LOGS(INFO) << "in db GetGroup:" << group_name;
   std::string group_str;
   leveldb::Status status = group_db_->Get(roption_, group_name, &group_str);
   if (status.IsNotFound()) {
-    return kServiceNotFound;
+    LOGS(WARNING) << "group not found";
+    return kGroupNotFound;
   } else if (!status.ok()) {
+    LOGS(WARNING) << "db read error";
     return kDBReadError;
   }
   group->ParseFromString(group_str);
@@ -422,7 +506,7 @@ StatusCode DB::GetGroup(const std::string& group_name, Group* group) {
 }
 
 StatusCode DB::GetUser(const std::string& user_name, User* user) {
-  std::cout << "in db GetUser\n";
+  LOGS(INFO) << "in db GetUser\n";
   std::string user_str;
   leveldb::Status status = user_db_->Get(roption_, user_name, &user_str);
   if (status.IsNotFound()) {
@@ -430,10 +514,40 @@ StatusCode DB::GetUser(const std::string& user_name, User* user) {
   } else if (!status.ok()) {
     return kDBReadError;
   }
-  user->ParseFromString(user_str);
+  if (user) {
+    user->ParseFromString(user_str);
+  }
   return kOK;
+}
+
+StatusCode DB::GetUserInGroup(const Group* group, const std::string& user_name) {
+  LOGS(INFO) << "in db GetUserInGroup\n";
+  uint32_t user_size = group->users_size();
+  for (int i = 0; i < user_size; ++i) {
+    if (group->users(i) == user_name) {
+      return kOK;
+    }
+  }
+  return kUserNotFound;
+}
+
+StatusCode DB::GetApp(const Group* group, const std::string& app_name, const std::string& app_id) {
+  LOGS(INFO) << "in db GetUserInGroup\n";
+  uint32_t app_size = group->apps_size();
+  for (int i = 0; i < app_size; ++i) {
+    if (group->apps(i).name() == app_name && group->apps(i).id() == app_id) {
+      return kAppExists;
+    }
+  }
+  return kAppNotFound;
 }
 
 } // namespace server
 } // namespace heimdallr
+
+using common::DEBUG;
+using common::INFO;
+using common::WARNING;
+using common::FATAL;
+
 } // namespace baidu

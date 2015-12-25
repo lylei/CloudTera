@@ -41,7 +41,7 @@ int32_t SetServiceResourceOp(int argc, char* argv[]) {
   std::string service_name = argv[2];
   std::string resource_name = argv[3];
   std::string provider_name = argv[4];
-  uint64_t quantity = boost::lexical_cast<uint64_t>(argv[5]);
+  int64_t quantity = boost::lexical_cast<uint64_t>(argv[5]);
   sdk::Heimdallr* client = new sdk::HeimdallrImpl;
   std::string services;
   StatusCode status;
@@ -106,19 +106,19 @@ int32_t SetGroupOp(int argc, char* argv[]) {
   }
   std::string group_name = argv[2];
   std::string service_name = argv[3];
-  std::string resource_name = argv[4];
-  uint64_t quota = boost::lexical_cast<uint64_t>(argv[5]);
+  int64_t host = boost::lexical_cast<uint64_t>(argv[4]);
+  int64_t cpu = boost::lexical_cast<uint64_t>(argv[5]);
+  int64_t mem = boost::lexical_cast<uint64_t>(argv[6]);
+  int64_t disk = boost::lexical_cast<uint64_t>(argv[7]);
+  int64_t flash = boost::lexical_cast<uint64_t>(argv[8]);
   sdk::Heimdallr* client = new sdk::HeimdallrImpl;
   std::string groups;
   StatusCode status;
 
-  client->SetGroupQuota(group_name, service_name, resource_name,
-                        quota, &status, NULL);
+  client->SetGroupQuota(group_name, service_name, host, cpu, mem, disk, flash, &status, NULL);
   if (status == kOK) {
     std::cout << "set group quota: " << group_name << "\n"
-              << "service: " << service_name << "\n"
-              << "resource: " << resource_name << "\n"
-              << "quota: " << quota << std::endl;
+              << "service: " << service_name << std::endl;
   } else {
     std::cerr << StatusCode_Name(status) << std::endl;
   }
@@ -151,19 +151,45 @@ int32_t AddAppOp(int argc, char* argv[]) {
     std::cerr << "missing arguments" << std::endl;
     return 1;
   }
+  // TODO check quota
   std::string group_name = argv[2];
   std::string app_name = argv[3];
-  uint64_t cpu = boost::lexical_cast<uint64_t>(argv[4]);
-  uint64_t mem = boost::lexical_cast<uint64_t>(argv[5]);
-  uint64_t disk = boost::lexical_cast<uint64_t>(argv[6]);
-  uint64_t flash = boost::lexical_cast<uint64_t>(argv[7]);
+  std::string app_id = argv[4];
+  uint64_t host = boost::lexical_cast<uint64_t>(argv[5]);
+  uint64_t cpu = boost::lexical_cast<uint64_t>(argv[6]);
+  uint64_t mem = boost::lexical_cast<uint64_t>(argv[7]);
+  uint64_t disk = boost::lexical_cast<uint64_t>(argv[8]);
+  uint64_t flash = boost::lexical_cast<uint64_t>(argv[9]);
 
   sdk::Heimdallr* client = new sdk::HeimdallrImpl;
   StatusCode status;
 
-  client->AddApp(group_name, app_name, cpu, mem, disk, flash, &status, NULL);
+  client->AddApp(group_name, app_name, app_id, host, cpu, mem, disk, flash, &status, NULL);
   if (status == kOK) {
     std::cout << "add app " << app_name << " ok" << std::endl;
+  } else {
+    std::cerr << StatusCode_Name(status) << std::endl;
+  }
+  delete client;
+  return 0;
+}
+
+int32_t DelAppOp(int argc, char* argv[]) {
+  if (argc < 5) {
+    std::cerr << "missing arguments" << std::endl;
+    return 1;
+  }
+  // TODO check quota
+  std::string group_name = argv[2];
+  std::string app_name = argv[3];
+  std::string app_id = argv[4];
+
+  sdk::Heimdallr* client = new sdk::HeimdallrImpl;
+  StatusCode status;
+
+  client->DelApp(group_name, app_name, app_id, &status, NULL);
+  if (status == kOK) {
+    std::cout << "del app " << app_name << " ok" << std::endl;
   } else {
     std::cerr << StatusCode_Name(status) << std::endl;
   }
@@ -255,6 +281,8 @@ int main(int argc, char* argv[]) {
     return baidu::heimdallr::ListGroupOp(argc, argv);
   } else if (op == "add_app") {
     return baidu::heimdallr::AddAppOp(argc, argv);
+  } else if (op == "del_app") {
+    return baidu::heimdallr::DelAppOp(argc, argv);
   } else if (op == "add_user") {
     return baidu::heimdallr::AddUserOp(argc, argv);
   } else if (op == "set_user") {

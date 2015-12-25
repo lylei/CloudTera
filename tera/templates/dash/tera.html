@@ -7,6 +7,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="">
     <meta name="author" content="">
+    <link rel="icon" href="/static/img/favicon.ico">
 
     <title>Dashboard·Tera</title>
 
@@ -64,7 +65,7 @@
           document.write("<th>Disk</th>")
           document.write("<th>Flash</th>")
           document.write("</thead>")
-          
+
           for (var i = 0; i < apps.length; ++i) {
             var app = apps[i];
             if (app['name'] == 'tera') {
@@ -82,6 +83,139 @@
         </table>
       </div>
     </div>
+
+    <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+      <div class="btn-group">
+        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Cluster <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+          <li><a href="/tera/?cluster=dev0">dev0 </a></li>
+          <li><a href="/tera/?cluster=dev4">dev4 </a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container featuretten col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2">
+      <div class="row">
+        <div id="graphic" class="col-md-12">
+          <div id="main-1" style="height:400px;width:100%"></div>
+        </div><!--/span-->
+      </div><!--/row-->
+    </div><!--/.fluid-container-->
+
+    <script type="text/javascript">
+      //setInterval('window.location.reload()', 1000);
+      require.config({
+            packages: [
+                {
+                    name: 'echarts',
+                    location: '/static/echarts/src',
+                    main: 'echarts'
+                },
+                {
+                    name: 'zrender',
+                    //location: 'http://ecomfe.github.io/zrender/src',
+                    location: '/static/zrender/src',
+                    main: 'zrender'
+                }
+            ]
+        });
+
+        var data = {{data|safe}}
+        var names = data.name;
+        var stat = data.stat;
+        var ts = stat.ts;
+
+        var s = new Array();
+        for (var j = 0; j < names.length; ++j) {
+            var chart = new Object();
+            chart.name = names[j];
+            chart.type = 'line';
+            chart.data = stat[names[j]];
+            chart.yAxisIndex = 0;
+            chart.smooth = true;
+            chart.symbol = 'none';
+            s.push(chart)
+        }
+        s[names.length - 1].yAxisIndex = 1;
+
+        var tool = {
+            show : true,
+            feature : {
+                mark : {show: true},
+                dataView : {show: true, readOnly: false},
+                magicType : {show: true, type: ['line', 'bar']},
+                restore : {show: true},
+                saveAsImage : {show: true}
+            }
+        }
+
+        var titles = stat.name
+        var yAxises = ['', '']
+        var option = {
+            title : {
+                text: titles,
+                subtext: 'Powed by Tera-Monitor',
+                x: 'center'
+            },
+            tooltip : {
+                trigger: 'axis'
+            },
+            legend: {
+                data: names,
+                x : 'left',
+                y : 'top'
+            },
+            toolbox: tool,
+            dataZoom: {
+                show: true,
+                start : 70
+            },
+            calculable : true,
+            xAxis : [
+                {
+                    type : 'category',
+                    data : ts
+                }
+            ],
+            yAxis : [
+                {
+                    name : yAxises[0],
+                    type : 'value',
+                    //scale : true,
+                    splitNumber: 6,
+                    splitArea : {show : true}
+                },
+                {
+                    name : yAxises[1],
+                    type : 'value',
+                    //scale : true,
+                    splitNumber: 6,
+                    //splitArea : {show : true}
+                }
+            ],
+            series : s,
+        };
+
+        require(
+            [
+                'echarts',
+                'echarts/chart/line',
+                'echarts/chart/bar'
+            ],
+            function (ec) {
+                var elements = ['main-1'];
+                //var options = [option, option_read]
+                var myChart = ec.init(document.getElementById(elements[0]));
+                myChart.showLoading({
+                    test: "Loading..."
+                });
+                myChart.hideLoading();
+                myChart.setOption(option);
+            }
+        )
+    </script>
 
 
     <!-- Bootstrap core JavaScript

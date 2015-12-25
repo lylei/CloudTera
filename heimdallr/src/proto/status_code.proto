@@ -18,7 +18,13 @@ enum StatusCode {
   kResourceRunOut = 301;
 
   kGroupExists = 400;
+  kGroupNotFound = 401;
 
   kUserExists = 500;
   kUserNotFound = 501;
+
+  kAppExists = 600;
+  kAppNotFound = 601;
+
+  kQuotaInvalid = 700;
 }

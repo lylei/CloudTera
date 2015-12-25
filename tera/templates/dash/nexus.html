@@ -7,6 +7,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="">
     <meta name="author" content="">
+    <link rel="icon" href="/static/img/favicon.ico">
 
     <title>Dashboard·Nexus</title>
 
@@ -64,7 +65,7 @@
           document.write("<th>Disk</th>")
           document.write("<th>Flash</th>")
           document.write("</thead>")
-          
+
           for (var i = 0; i < apps.length; ++i) {
             var app = apps[i];
             if (app['name'] == 'nexus') {

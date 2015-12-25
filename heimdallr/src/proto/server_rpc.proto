@@ -20,7 +20,7 @@ message SetServiceResourceRequest {
   optional string service_name = 1;
   optional string resource_name = 2;
   optional string provider_name = 3;
-  optional uint64 quantity = 4;
+  optional int64 quantity = 4;
 }
 
 message SetServiceResourceResponse {
@@ -49,8 +49,11 @@ message AddGroupResponse {
 message SetGroupQuotaRequest {
   optional string group_name = 1;
   optional string service_name = 2;
-  optional string resource_name = 3;
-  optional uint64 quota = 4;
+  optional int64 host = 4;
+  optional int64 cpu = 5;
+  optional int64 mem = 6;
+  optional int64 disk = 7;
+  optional int64 flash = 8;
 }
 
 message SetGroupQuotaResponse {
@@ -71,13 +74,25 @@ message ListGroupResponse {
 message AddAppRequest {
   optional string group_name = 1;
   optional string app_name = 2;
-  optional uint64 cpu = 3;
-  optional uint64 mem = 4;
-  optional uint64 disk = 5;
-  optional uint64 flash = 6;
+  optional string app_id = 3;
+  optional int64 host = 4;
+  optional int64 cpu = 5;
+  optional int64 mem = 6;
+  optional int64 disk = 7;
+  optional int64 flash = 8;
 }
 
 message AddAppResponse {
+  optional StatusCode status = 1;
+}
+
+message DelAppRequest {
+  optional string group_name = 1;
+  optional string app_name = 2;
+  optional string app_id = 3;
+}
+
+message DelAppResponse {
   optional StatusCode status = 1;
 }
 
@@ -112,34 +127,35 @@ message ListUserResponse {
 
 ////// helpers //////
 message History {
-  optional uint64 capacity = 1;
-  optional uint64 ts = 2;
+  optional int64 capacity = 1;
+  optional int32 ts = 2;
 }
 
 message Resource {
   optional string resource_name = 1;
-  optional uint64 capacity = 2;
+  optional int64 capacity = 2;
   repeated UsedBy used_by = 3;
-  optional uint64 left = 4;
+  optional int64 left = 4;
   repeated History history = 5;
 }
 
 message Provider {
   optional string resource_name = 1;
   optional string name = 2;
-  optional uint64 quantity = 3;
+  optional int64 quantity = 3;
+  optional int32 ts = 4;
 }
 
 message UsedBy {
   optional string group_name = 1;
-  optional uint64 quantity = 2;
+  optional int64 quantity = 2;
+  optional int32 ts = 3;
 }
 
 message Service {
   optional string service_name = 1;
   repeated Resource resources = 2;
   repeated Provider providers = 3;
-  repeated string groups = 4;
 }
 
 message User {
@@ -151,22 +167,35 @@ message User {
 message Quota {
   optional string service_name = 1;
   optional string resource_name = 2;
-  optional uint64 quota = 3;
+  optional int64 quota = 3;
+  optional int32 ts = 4;
 }
 
 message Group {
   optional string group_name = 1;
-  repeated Quota quota = 2;
-  repeated string users = 3;
-  repeated App apps = 4;
+  // repeated Quota quota = 2;
+  optional int64 host_quota = 3;
+  optional int64 host_left = 4;
+  optional int64 cpu_quota = 5;
+  optional int64 cpu_left = 6;
+  optional int64 mem_quota = 7;
+  optional int64 mem_left = 8;
+  optional int64 disk_quota = 9;
+  optional int64 disk_left = 10;
+  optional int64 flash_quota = 11;
+  optional int64 flash_left = 12;
+  repeated string users = 13;
+  repeated App apps = 14;
 }
 
 message App {
   optional string name = 1;
-  optional uint64 cpu = 2;
-  optional uint64 mem = 3;
-  optional uint64 disk = 4;
-  optional uint64 flash = 5;
+  optional string id = 2;
+  optional int64 host = 3;
+  optional int64 cpu = 4;
+  optional int64 mem = 5;
+  optional int64 disk = 6;
+  optional int64 flash = 7;
 }
 
 service Server {
@@ -180,6 +209,7 @@ service Server {
   rpc SetGroupQuota(SetGroupQuotaRequest) returns(SetGroupQuotaResponse);
   rpc ListGroup(ListGroupRequest) returns(ListGroupResponse);
   rpc AddApp(AddAppRequest) returns(AddAppResponse);
+  rpc DelApp(DelAppRequest) returns(DelAppResponse);
 
   ////// User //////
   rpc AddUser(AddUserRequest) returns(AddUserResponse);

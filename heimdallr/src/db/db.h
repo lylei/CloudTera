@@ -9,6 +9,7 @@
 
 #include <sofa/pbrpc/pbrpc.h>
 #include <leveldb/db.h>
+#include <logging.h>
 
 #include "src/proto/status_code.pb.h"
 
@@ -35,7 +36,7 @@ public:
   StatusCode SetServiceResource(const std::string& service_name,
                                 const std::string& resource_name,
                                 const std::string& provider_name,
-                                uint64_t quantity);
+                                int64_t quantity);
   StatusCode ListService(const std::string& service_name, Service* services,
                          std::string* service_info);
 
@@ -43,11 +44,14 @@ public:
   StatusCode AddGroup(const std::string& group_name);
   StatusCode SetGroupQuota(const std::string& group_name,
                            const std::string& service_name,
-                           const std::string& resource_name,
-                           uint64_t quota);
+                           int64_t host, int64_t cpu, int64_t mem,
+                           int64_t disk, int64_t flash);
   StatusCode ListGroup(const std::string& group_name, Group* group, std::string* group_info);
   StatusCode AddApp(const std::string& group_name, const std::string& app_name,
-                    uint64_t cpu, uint64_t mem, uint64_t disk, uint64_t flash);
+                    const std::string& app_id, int64_t host, int64_t cpu, int64_t mem,
+                    int64_t disk, int64_t flash);
+  StatusCode DelApp(const std::string& group_name, const std::string& app_name,
+                    const std::string& app_id);
 
   ////// User //////
   StatusCode AddUser(const std::string& user_name, const std::string& passwd);
@@ -57,12 +61,17 @@ public:
 
 private:
   StatusCode GetService(const std::string& service_name, Service* service);
+  StatusCode GetResource(Service* service, const std::string& resource_name, Resource** resource);
   StatusCode GetGroup(const std::string& group_name, Group* group);
+  //StatusCode GetQuota(Group* group, const std::string resource_name, Quota** quota);
   StatusCode GetUser(const std::string& user_name, User* user);
+  StatusCode GetUserInGroup(const Group* group, const std::string& user_name);
+  StatusCode GetApp(const Group* group, const std::string& app_name, const std::string& app_id);
 
   StatusCode ParseResource(const Resource&, std::string* res);
 
 private:
+  common::LogStream* logger_;
   leveldb::DB* group_db_;
   leveldb::DB* service_db_;
   leveldb::DB* user_db_;
